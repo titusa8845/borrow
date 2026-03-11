@@ -200,9 +200,10 @@ function doBorrow(p) {
       }
     }
 
-    // 寫入紀錄（不再更新器材表的已借出欄）
+    // 寫入紀錄
+    const status = returnOn ? '借出中' : '已借出';
     for (const item of items) {
-      recSheet.appendRow([now, p['class'], p.seat, p.name, item.name, item.qty, '借出中']);
+      recSheet.appendRow([now, p['class'], p.seat, p.name, item.name, item.qty, status]);
     }
 
     return { ok: true, message: '借用成功！' };
