@@ -53,7 +53,29 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    gap: 12px;
   }
+  .header h1 { flex-shrink: 0; }
+  .eq-dashboard {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex: 1;
+  }
+  .eq-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 14px;
+    border-radius: 12px;
+    min-width: 60px;
+  }
+  .eq-chip-num { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  .eq-chip-name { font-size: 11px; opacity: 0.85; }
+  .eq-chip.green  { background: #e6f9f0; color: #27ae60; }
+  .eq-chip.yellow { background: #fff8e1; color: #f39c12; }
+  .eq-chip.red    { background: #fdecea; color: #e74c3c; }
 
   .header h1 {
     font-size: 24px;
@@ -756,6 +778,7 @@
 <div class="app" style="display:none" id="appMain">
   <div class="header">
     <h1>&#127992; 義方國小借球系統</h1>
+    <div class="eq-dashboard" id="eqDashboard"></div>
     <button class="gear-btn" onclick="openAdmin()" title="管理後台">&#9881;</button>
   </div>
 
@@ -1080,6 +1103,7 @@ async function selectStudent(seat, name, btnEl) {
     borrowQty = {};
     cachedEq.forEach(eq => borrowQty[eq.name] = 0);
     renderEquipment();
+    renderDashboard(cachedEq);
   }
 
   // 背景更新器材
@@ -1090,8 +1114,22 @@ async function selectStudent(seat, name, btnEl) {
   borrowQty = {};
   res.data.forEach(eq => borrowQty[eq.name] = 0);
   renderEquipment();
+  renderDashboard(res.data);
 
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderDashboard(data) {
+  const dashboard = document.getElementById('eqDashboard');
+  if (!dashboard) return;
+  dashboard.innerHTML = data.filter(eq => eq.status !== '停用').map(eq => {
+    const avail = eq.returnEnabled ? eq.available : eq.total;
+    const total = eq.total;
+    const ratio = total > 0 ? avail / total : 1;
+    const cls = ratio > 0.5 ? 'green' : ratio > 0.2 ? 'yellow' : 'red';
+    const shortName = eq.name.replace(/[^\u4e00-\u9fa5a-zA-Z]/g, '').slice(0, 3);
+    return `<div class="eq-chip ${cls}"><span class="eq-chip-num">${avail}</span><span class="eq-chip-name">${shortName}</span></div>`;
+  }).join('');
 }
 
 function renderEquipment() {
@@ -1523,7 +1561,7 @@ async function preloadStudents() {
 // 預載器材
 async function preloadEquipment() {
   const res = await api({ action: 'getEquipment' });
-  if (res.ok) cacheSet('equipment', res.data);
+  if (res.ok) { cacheSet('equipment', res.data); renderDashboard(res.data); }
 }
 
 // 初始化
