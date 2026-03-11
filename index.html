@@ -747,8 +747,9 @@
 <!-- 全螢幕載入畫面 -->
 <div id="loadingScreen" style="position:fixed;inset:0;background:white;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
   <div style="font-size:28px;font-weight:700;color:var(--primary)">🏸 義方國小借球系統</div>
-  <div class="spinner" style="width:48px;height:48px;border-width:5px"></div>
-  <div id="loadingText" style="font-size:18px;color:var(--gray-500)">載入中...</div>
+  <div style="width:220px;height:8px;background:var(--gray-200);border-radius:8px;overflow:hidden;margin-top:8px">
+    <div id="loadingBar" style="width:0%;height:100%;background:var(--primary);border-radius:8px;transition:width 0.3s"></div>
+  </div>
   <div id="loadingProgress" style="font-size:14px;color:var(--gray-400)"></div>
 </div>
 
@@ -1441,25 +1442,30 @@ async function preloadEquipment() {
 
 // 初始化
 async function init() {
-  const progress = document.getElementById('loadingProgress');
-  const setText = (t) => { if (progress) progress.textContent = t; };
+  const bar = document.getElementById('loadingBar');
+  const txt = document.getElementById('loadingProgress');
+  const update = (done, total, label) => {
+    const pct = Math.round((done / total) * 100);
+    bar.style.width = pct + '%';
+    txt.textContent = label;
+  };
 
-  setText('載入班級...');
+  // Step 1: 載入班級
+  update(0, 1, '載入班級...');
   await loadClasses();
 
-  // 取得班級列表來預載學生
   const classes = cacheGet('classes') || [];
-  let loaded = 0;
   const total = classes.length + 1; // +1 for equipment
+  let loaded = 0;
 
-  // 平行預載所有班級學生 + 器材
+  // Step 2: 平行預載所有班級學生 + 器材
   const tasks = [];
   for (const name of classes) {
     tasks.push(
       api({ action: 'getStudents', class: name }).then(r => {
         if (r.ok) cacheSet('students_' + name, r.data);
         loaded++;
-        setText(`載入學生資料 ${loaded}/${total}...`);
+        update(loaded, total, `載入學生 ${loaded}/${total}`);
       })
     );
   }
@@ -1467,15 +1473,18 @@ async function init() {
     api({ action: 'getEquipment' }).then(r => {
       if (r.ok) cacheSet('equipment', r.data);
       loaded++;
-      setText(`載入器材資料 ${loaded}/${total}...`);
+      update(loaded, total, `載入器材 ${loaded}/${total}`);
     })
   );
 
   await Promise.all(tasks);
+  update(total, total, '完成！');
 
   // 隱藏載入畫面，顯示主畫面
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('appMain').style.display = '';
+  setTimeout(() => {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('appMain').style.display = '';
+  }, 300);
 }
 
 init();
