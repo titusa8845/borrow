@@ -1176,6 +1176,13 @@ async function submitBorrow() {
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('submitBtn').textContent = '送出中...';
 
+  // 樂觀更新儀錶板：立即扣除借出數量
+  const optimisticData = equipmentData.map(eq => ({
+    ...eq,
+    available: eq.available - (borrowQty[eq.name] || 0)
+  }));
+  renderDashboard(optimisticData);
+
   const res = await api({
     action: 'borrow',
     class: selectedClass,
