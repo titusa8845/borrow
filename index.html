@@ -930,16 +930,31 @@ function resetAll() {
   loadClasses();
 }
 
+// === 快取工具 ===
+function cacheSet(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {} }
+function cacheGet(key) { try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : null; } catch(e) { return null; } }
+
+function renderClassGrid(data) {
+  const grid = document.getElementById('classGrid');
+  if (!grid) return;
+  if (data.length === 0) { grid.innerHTML = '<div class="loading">📭 尚無班級<br>請在後台新增</div>'; return; }
+  grid.innerHTML = data.map(name =>
+    `<button class="class-btn" onclick="selectClass('${name.replace(/'/g, "\\'")}')">${name}</button>`
+  ).join('');
+}
+
 // === 載入班級 ===
 async function loadClasses() {
   const grid = document.getElementById('classGrid');
-  grid.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入中...</div>';
+  // 樂觀更新：先顯示快取
+  const cached = cacheGet('classes');
+  if (cached) { renderClassGrid(cached); }
+  else { grid.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入中...</div>'; }
+  // 背景更新
   const res = await api({ action: 'getClasses' });
-  if (!res.ok) { grid.innerHTML = '<div class="loading">載入失敗</div>'; return; }
-  if (res.data.length === 0) { grid.innerHTML = '<div class="loading">📭 尚無班級<br>請在後台新增</div>'; return; }
-  grid.innerHTML = res.data.map(name =>
-    `<button class="class-btn" onclick="selectClass('${name.replace(/'/g, "\\'")}')">${name}</button>`
-  ).join('');
+  if (!res.ok) { if (!cached) grid.innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  cacheSet('classes', res.data);
+  renderClassGrid(res.data);
 }
 
 // === 選班級 ===
@@ -976,18 +991,27 @@ async function selectClass(name) {
   document.getElementById('mainContent').appendChild(panel);
 
   // 載入學生
-  const res = await api({ action: 'getStudents', class: name });
+  const cacheKey = 'students_' + name;
+  const cachedStu = cacheGet(cacheKey);
   const grid = document.getElementById('studentGrid');
-  if (!res.ok) { grid.innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  if (cachedStu) renderStudentGrid(cachedStu, grid);
+
+  const res = await api({ action: 'getStudents', class: name });
+  if (!res.ok) { if (!cachedStu) grid.innerHTML = '<div class="loading">載入失敗</div>'; return; }
   if (res.data.length === 0) { grid.innerHTML = '<div class="loading">此班尚無學生</div>'; return; }
-  grid.innerHTML = res.data.map(s =>
+  cacheSet(cacheKey, res.data);
+  renderStudentGrid(res.data, grid);
+
+  // 滾到學生面板
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderStudentGrid(data, grid) {
+  grid.innerHTML = data.map(s =>
     `<button class="student-btn" onclick="selectStudent(${s.seat}, '${s.name.replace(/'/g, "\\'")}', this)">
       <span class="seat">${String(s.seat).padStart(2, '0')}</span>${s.name}
     </button>`
   ).join('');
-
-  // 滾到學生面板
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // === 重選學生 ===
