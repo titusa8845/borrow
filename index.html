@@ -294,9 +294,11 @@
   .panel-header .panel-label { margin-bottom: 0; }
 
   .selected-info {
-    font-size: 22px;
+    font-size: 40px;
     font-weight: 700;
     color: var(--primary);
+    text-align: center;
+    padding: 12px 0;
   }
 
   /* === 成功畫面 === */
@@ -721,7 +723,7 @@
 
     .panel { padding: 28px; }
     .panel-label { font-size: 15px; }
-    .selected-info { font-size: 26px; }
+    .selected-info { font-size: 48px; }
 
     .success-box { padding: 56px 40px; }
     .success-icon { font-size: 88px; }
@@ -983,13 +985,28 @@ async function selectClass(name) {
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// === 重選學生 ===
+function reselectStudent() {
+  selectedStudent = null;
+  const oldEp = document.getElementById('eqPanel');
+  if (oldEp) oldEp.remove();
+  // 重新觸發選班級來載入學生列表
+  selectClass(selectedClass);
+}
+
 // === 選學生 ===
 async function selectStudent(seat, name, btnEl) {
   selectedStudent = { seat, name };
 
-  // 高亮選中的學生
-  document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('selected'));
-  if (btnEl) btnEl.classList.add('selected');
+  // 學生面板變成已選狀態
+  const sp = document.getElementById('studentPanel');
+  sp.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-label">🙋 ② 學生</div>
+      <button class="change-btn" onclick="reselectStudent()">🔄 重選</button>
+    </div>
+    <div class="selected-info">${String(seat).padStart(2, '0')} ${name}</div>
+  `;
 
   // 移除舊的數量面板
   const oldEp = document.getElementById('eqPanel');
