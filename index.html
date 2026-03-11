@@ -880,7 +880,18 @@
         </label>
       </div>
       <div style="font-size:14px;color:var(--gray-500);margin-top:8px">開啟後，借用紀錄中會顯示「歸還」按鈕，且借用時會檢查庫存上限</div>
-      <div style="margin-top:20px">
+      <div style="margin-top:20px;border-top:1px solid var(--gray-200);padding-top:16px">
+        <div style="font-size:17px;margin-bottom:10px">⏱️ 自動歸還時間</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm auto-return-opt" onclick="setAutoReturn(0)" data-min="0" style="background:var(--gray-200)">關閉</button>
+          <button class="btn btn-sm auto-return-opt" onclick="setAutoReturn(10)" data-min="10" style="background:var(--gray-200)">10 分鐘</button>
+          <button class="btn btn-sm auto-return-opt" onclick="setAutoReturn(15)" data-min="15" style="background:var(--gray-200)">15 分鐘</button>
+          <button class="btn btn-sm auto-return-opt" onclick="setAutoReturn(20)" data-min="20" style="background:var(--gray-200)">20 分鐘</button>
+          <button class="btn btn-sm auto-return-opt" onclick="setAutoReturn(30)" data-min="30" style="background:var(--gray-200)">30 分鐘</button>
+        </div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:6px">借出後超過設定時間，系統自動標記為已歸還（需開啟歸還功能）</div>
+      </div>
+      <div style="margin-top:20px;border-top:1px solid var(--gray-200);padding-top:16px">
         <button class="btn" style="background:#e74c3c;color:white;width:100%" onclick="resetInventory()">🔄 重設統計數量（恢復庫存）</button>
         <div style="font-size:13px;color:var(--gray-500);margin-top:6px">將所有「借出中」紀錄標記為已歸還，恢復所有庫存數量</div>
       </div>
@@ -1177,6 +1188,8 @@ async function showAdminPanel() {
     returnEnabled = res.data.RETURN_ENABLED?.toString().toUpperCase() === 'TRUE';
     document.getElementById('returnToggle').checked = returnEnabled;
     updateToggleUI();
+    const autoMin = parseInt(res.data.AUTO_RETURN_MINUTES) || 0;
+    highlightAutoReturn(autoMin);
   }
 }
 
@@ -1406,6 +1419,22 @@ async function toggleReturnSetting() {
 }
 
 // 重設庫存
+async function setAutoReturn(minutes) {
+  const res = await api({ action: 'setAutoReturn', pw: adminPw, minutes });
+  if (res.ok) {
+    showToast(res.message, 'success');
+    highlightAutoReturn(minutes);
+  } else showToast(res.error || '設定失敗', 'error');
+}
+
+function highlightAutoReturn(minutes) {
+  document.querySelectorAll('.auto-return-opt').forEach(btn => {
+    const m = parseInt(btn.dataset.min);
+    btn.style.background = m === minutes ? 'var(--primary)' : 'var(--gray-200)';
+    btn.style.color = m === minutes ? 'white' : 'inherit';
+  });
+}
+
 async function resetInventory() {
   if (!confirm('確定要將所有「借出中」紀錄標記為已歸還嗎？')) return;
   const res = await api({ action: 'resetInventory', pw: adminPw });

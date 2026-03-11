@@ -52,6 +52,7 @@ function dispatch(p) {
     case 'getSettings':    return auth(p, () => ({ ok: true, data: getSettings() }));
     case 'setSetting':     return auth(p, () => doSetSetting(p.key, p.value));
     case 'resetInventory': return auth(p, () => doResetInventory());
+    case 'setAutoReturn':  return auth(p, () => doSetAutoReturn(p.minutes));
 
     default: return { ok: false, error: '未知的 action' };
   }
@@ -91,6 +92,13 @@ function doSetSetting(key, value) {
     sheet.appendRow([key, value]);
   }
   return { ok: true, message: '設定已更新' };
+}
+
+function getAutoReturnMinutes() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('設定');
+  const data = sheet.getDataRange().getValues();
+  const row = data.find(r => r[0] === 'AUTO_RETURN_MINUTES');
+  return row ? parseInt(row[1]) || 0 : 0;
 }
 
 function isReturnEnabled() {
@@ -366,4 +374,52 @@ function doResetInventory() {
     }
   }
   return { ok: true, message: `已重設 ${count} 筆借用紀錄為已歸還` };
+}
+
+function doSetAutoReturn(minutes) {
+  const min = parseInt(minutes) || 0;
+  doSetSetting('AUTO_RETURN_MINUTES', min);
+  setupAutoReturnTrigger(min);
+  if (min > 0) return { ok: true, message: `已設定 ${min} 分鐘自動歸還` };
+  return { ok: true, message: '已關閉自動歸還' };
+}
+
+// ========== 自動歸還（定時觸發）==========
+function autoReturn() {
+  const minutes = getAutoReturnMinutes();
+  if (minutes <= 0) return;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const recSheet = ss.getSheetByName('借用紀錄');
+  const data = recSheet.getDataRange().getValues();
+  const now = new Date();
+  let count = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][6] !== '借出中') continue;
+    const borrowTime = new Date(data[i][0]);
+    const diffMin = (now - borrowTime) / 60000;
+    if (diffMin >= minutes) {
+      recSheet.getRange(i + 1, 7).setValue('已歸還（自動）');
+      count++;
+    }
+  }
+}
+
+// 設定/移除自動歸還觸發器
+function setupAutoReturnTrigger(intervalMinutes) {
+  // 先移除舊的觸發器
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const t of triggers) {
+    if (t.getHandlerFunction() === 'autoReturn') {
+      ScriptApp.deleteTrigger(t);
+    }
+  }
+  // 如果有設定時間，建立新觸發器（每5分鐘檢查一次）
+  if (intervalMinutes > 0) {
+    ScriptApp.newTrigger('autoReturn')
+      .timeBased()
+      .everyMinutes(5)
+      .create();
+  }
 }
