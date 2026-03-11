@@ -1148,8 +1148,8 @@ async function submitBorrow() {
         const eq = equipmentData.find(e => e.name === name);
         return `${name} ${qty}${eq ? eq.unit : ''}`;
       }).join('、');
-    document.getElementById('successDetail').textContent =
-      `${selectedStudent.name}（${selectedClass}）\n借了 ${detail}`;
+    document.getElementById('successDetail').innerHTML =
+      `${selectedStudent.name}（${selectedClass}）<br>借了 ${detail}`;
     document.getElementById('successOverlay').classList.add('active');
   } else {
     showToast(res.error || '借用失敗', 'error');
@@ -1215,7 +1215,7 @@ async function loadRecords(filter) {
   if (res.data.length === 0) { container.innerHTML = '<div class="loading">沒有紀錄</div>'; return; }
   let html = '<table class="admin-table"><thead><tr><th>時間</th><th>班級/姓名</th><th>器材</th><th>狀態</th></tr></thead><tbody>';
   res.data.forEach(r => {
-    const cls = r.status === '借出中' ? 'active' : 'returned';
+    const cls = (r.status === '借出中' || r.status === '已借出') ? 'active' : 'returned';
     const btn = (r.status === '借出中' && returnEnabled) ? `<button class="return-btn" onclick="returnItem(${r.row})">↩️ 歸還</button>` : '';
     html += `<tr><td style="font-size:13px">${r.time}</td><td>${r.className}<br><b>${r.name}</b></td><td>${r.equipment} x${r.qty}</td><td><span class="status-badge ${cls}">${r.status}</span><br>${btn}</td></tr>`;
   });
