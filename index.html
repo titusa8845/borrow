@@ -1086,7 +1086,7 @@ function renderEquipment() {
     <div class="eq-card">
       <div>
         <div class="eq-name">${eq.name}(${eq.unit})</div>
-        <div class="eq-avail">可借 ${eq.available} / 上限 ${eq.maxPerBorrow}</div>
+        <div class="eq-avail">${eq.returnEnabled ? `可借 ${eq.available} / ` : ''}上限 ${eq.maxPerBorrow}</div>
       </div>
       <div class="qty-control">
         <button class="qty-btn" onclick="changeQty('${eq.name}', -1)">&#8722;</button>
