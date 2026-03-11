@@ -1576,6 +1576,10 @@ async function preloadEquipment() {
 
 // 初始化
 async function init() {
+  // 先從快取顯示儀錶板
+  const cachedEq = cacheGet('equipment');
+  if (cachedEq) renderDashboard(cachedEq);
+
   const bar = document.getElementById('loadingBar');
   const txt = document.getElementById('loadingProgress');
   const update = (done, total, label) => {
