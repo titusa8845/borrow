@@ -123,7 +123,7 @@ function getEquipment() {
   // 只有歸還功能開啟時才統計今日借出量
   const todayBorrowed = returnOn ? getTodayBorrowed(ss) : {};
 
-  return data.filter(row => row[0] !== '').map(row => {
+  return data.slice(1).filter(row => row[0] !== '').map(row => {
     const name = row[0];
     const total = Number(row[2]);
     const borrowed = todayBorrowed[name] || 0;
