@@ -1554,7 +1554,8 @@ async function resetInventory() {
 function playSuccessSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const notes = [261.63, 329.63, 392.00]; // C4, E4, G4
+    // 快速上升音階：C4 D4 E4 F4 G4 A4 B4 C5
+    const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -1562,12 +1563,12 @@ function playSuccessSound() {
       gain.connect(ctx.destination);
       osc.type = 'sine';
       osc.frequency.value = freq;
-      const start = ctx.currentTime + i * 0.18;
+      const start = ctx.currentTime + i * 0.08;
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.4, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+      gain.gain.linearRampToValueAtTime(0.35, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
       osc.start(start);
-      osc.stop(start + 0.35);
+      osc.stop(start + 0.18);
     });
   } catch(e) {}
 }
