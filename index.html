@@ -1198,6 +1198,7 @@ async function submitBorrow() {
     document.getElementById('successDetail').innerHTML =
       `${selectedStudent.name}（${selectedClass}）<br>借了 ${detail}`;
     document.getElementById('successOverlay').classList.add('active');
+    playSuccessSound();
     // 樂觀更新儀錶板：立即扣除借出數量
     Object.entries(borrowQty).forEach(([name, qty]) => {
       if (qty <= 0) return;
@@ -1547,6 +1548,28 @@ async function resetInventory() {
     showToast(res.message, 'success');
     loadAdminRecords();
   } else showToast(res.error || '重設失敗', 'error');
+}
+
+// 借用成功音效（Do Mi Sol）
+function playSuccessSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [261.63, 329.63, 392.00]; // C4, E4, G4
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.4, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+      osc.start(start);
+      osc.stop(start + 0.35);
+    });
+  } catch(e) {}
 }
 
 // Toast
