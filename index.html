@@ -1130,6 +1130,14 @@ async function submitBorrow() {
 
   if (!items) { showToast('請至少選擇一項', 'error'); return; }
 
+  // 先存明細（送出後 borrowQty 可能被重設）
+  const detail = Object.entries(borrowQty)
+    .filter(([_, qty]) => qty > 0)
+    .map(([name, qty]) => {
+      const eq = equipmentData.find(e => e.name === name);
+      return `${name} ${qty}${eq ? eq.unit : ''}`;
+    }).join('、');
+
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('submitBtn').textContent = '送出中...';
 
@@ -1142,12 +1150,6 @@ async function submitBorrow() {
   });
 
   if (res.ok) {
-    const detail = Object.entries(borrowQty)
-      .filter(([_, qty]) => qty > 0)
-      .map(([name, qty]) => {
-        const eq = equipmentData.find(e => e.name === name);
-        return `${name} ${qty}${eq ? eq.unit : ''}`;
-      }).join('、');
     document.getElementById('successDetail').innerHTML =
       `${selectedStudent.name}（${selectedClass}）<br>借了 ${detail}`;
     document.getElementById('successOverlay').classList.add('active');
