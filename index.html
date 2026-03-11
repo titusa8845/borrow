@@ -1122,6 +1122,8 @@ async function selectStudent(seat, name, btnEl) {
 function renderDashboard(data) {
   const dashboard = document.getElementById('eqDashboard');
   if (!dashboard) return;
+  // 歸還系統關閉時不顯示儀錶板
+  if (data.length > 0 && !data[0].returnEnabled) { dashboard.innerHTML = ''; return; }
   dashboard.innerHTML = data.filter(eq => eq.status !== '停用').map(eq => {
     const avail = eq.returnEnabled ? eq.available : eq.total;
     const total = eq.total;
