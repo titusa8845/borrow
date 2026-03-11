@@ -1050,9 +1050,19 @@ async function selectStudent(seat, name, btnEl) {
   `;
   document.getElementById('mainContent').appendChild(panel);
 
-  // 載入器材
+  // 樂觀更新：先顯示快取的器材
+  const cachedEq = cacheGet('equipment');
+  if (cachedEq) {
+    equipmentData = cachedEq;
+    borrowQty = {};
+    cachedEq.forEach(eq => borrowQty[eq.name] = 0);
+    renderEquipment();
+  }
+
+  // 背景更新器材
   const res = await api({ action: 'getEquipment' });
-  if (!res.ok) { document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  if (!res.ok) { if (!cachedEq) document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  cacheSet('equipment', res.data);
   equipmentData = res.data;
   borrowQty = {};
   res.data.forEach(eq => borrowQty[eq.name] = 0);
@@ -1415,9 +1425,16 @@ async function preloadStudents() {
   }
 }
 
+// 預載器材
+async function preloadEquipment() {
+  const res = await api({ action: 'getEquipment' });
+  if (res.ok) cacheSet('equipment', res.data);
+}
+
 // 初始化
 loadClasses();
 preloadStudents();
+preloadEquipment();
 </script>
 
 </body>
