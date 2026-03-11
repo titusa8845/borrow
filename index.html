@@ -891,6 +891,9 @@
         </div>
         <div style="font-size:13px;color:var(--gray-500);margin-top:6px">借出後超過設定時間，系統自動標記為已歸還（需開啟歸還功能）</div>
       </div>
+      <div style="margin-top:20px;border-top:1px solid var(--gray-200);padding-top:16px" id="autoReturnStatus">
+        <!-- 倒數計時動態載入 -->
+      </div>
       <div style="margin-top:20px;border-top:1px solid var(--gray-200);padding-top:16px">
         <button class="btn" style="background:#e74c3c;color:white;width:100%" onclick="resetInventory()">🔄 重設統計數量（恢復庫存）</button>
         <div style="font-size:13px;color:var(--gray-500);margin-top:6px">將所有「借出中」紀錄標記為已歸還，恢復所有庫存數量</div>
@@ -1197,7 +1200,10 @@ async function showAdminPanel() {
   }
 }
 
-function closeAdmin() { document.getElementById('adminOverlay').classList.remove('active'); }
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('active');
+  if (autoReturnTimer) { clearInterval(autoReturnTimer); autoReturnTimer = null; }
+}
 
 function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1208,6 +1214,7 @@ function switchTab(tabName) {
   if (tabName === 'classes') loadAdminClasses();
   if (tabName === 'students') loadAdminClassSelect();
   if (tabName === 'equipment') loadAdminEquipment();
+  if (tabName === 'settings') loadAutoReturnStatus();
 }
 
 // 借用紀錄
@@ -1423,12 +1430,58 @@ async function toggleReturnSetting() {
 }
 
 // 重設庫存
+let autoReturnTimer = null;
+let autoReturnData = null;
+
 async function setAutoReturn(minutes) {
   const res = await api({ action: 'setAutoReturn', pw: adminPw, minutes });
   if (res.ok) {
     showToast(res.message, 'success');
     highlightAutoReturn(minutes);
+    loadAutoReturnStatus();
   } else showToast(res.error || '設定失敗', 'error');
+}
+
+async function loadAutoReturnStatus() {
+  const container = document.getElementById('autoReturnStatus');
+  if (!container) return;
+  const res = await api({ action: 'getAutoReturnStatus', pw: adminPw });
+  if (!res.ok) return;
+  autoReturnData = res;
+
+  if (autoReturnTimer) clearInterval(autoReturnTimer);
+
+  if (res.minutes <= 0 || res.active.length === 0) {
+    container.innerHTML = res.minutes <= 0
+      ? '<div style="font-size:13px;color:var(--gray-400)">⏱️ 自動歸還未啟用</div>'
+      : '<div style="font-size:13px;color:var(--gray-400)">✅ 目前無借出中的器材</div>';
+    return;
+  }
+
+  renderAutoReturnStatus();
+  autoReturnTimer = setInterval(renderAutoReturnStatus, 1000);
+}
+
+function renderAutoReturnStatus() {
+  const container = document.getElementById('autoReturnStatus');
+  if (!container || !autoReturnData) return;
+  const now = Date.now();
+  const offset = now - autoReturnData.now;
+
+  let html = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">⏱️ 自動歸還倒數</div>';
+  for (const item of autoReturnData.active) {
+    const remain = Math.max(0, item.expireTime - now + offset);
+    const min = Math.floor(remain / 60000);
+    const sec = Math.floor((remain % 60000) / 1000);
+    const urgent = remain < 60000;
+    const color = remain === 0 ? 'var(--success)' : urgent ? 'var(--danger)' : 'var(--primary)';
+    const label = remain === 0 ? '即將歸還' : `${min}:${String(sec).padStart(2,'0')}`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100)">
+      <div style="font-size:13px">${item.className} <b>${item.name}</b> · ${item.equipment}</div>
+      <div style="font-size:18px;font-weight:700;color:${color};min-width:52px;text-align:right">${label}</div>
+    </div>`;
+  }
+  container.innerHTML = html;
 }
 
 function highlightAutoReturn(minutes) {

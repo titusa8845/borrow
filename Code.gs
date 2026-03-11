@@ -53,6 +53,7 @@ function dispatch(p) {
     case 'setSetting':     return auth(p, () => doSetSetting(p.key, p.value));
     case 'resetInventory': return auth(p, () => doResetInventory());
     case 'setAutoReturn':  return auth(p, () => doSetAutoReturn(p.minutes));
+    case 'getAutoReturnStatus': return auth(p, () => doGetAutoReturnStatus());
 
     default: return { ok: false, error: '未知的 action' };
   }
@@ -374,6 +375,36 @@ function doResetInventory() {
     }
   }
   return { ok: true, message: `已重設 ${count} 筆借用紀錄為已歸還` };
+}
+
+function doGetAutoReturnStatus() {
+  const minutes = getAutoReturnMinutes();
+  if (minutes <= 0) return { ok: true, minutes: 0, active: [], now: new Date().getTime() };
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const recSheet = ss.getSheetByName('借用紀錄');
+  const data = recSheet.getDataRange().getValues();
+  const now = new Date();
+  const active = [];
+
+  for (const row of data) {
+    if (row[6] !== '借出中') continue;
+    const borrowTime = new Date(row[0]);
+    const expireTime = new Date(borrowTime.getTime() + minutes * 60000);
+    const remainMs = expireTime - now;
+    active.push({
+      name: row[3],
+      className: row[1],
+      equipment: row[4],
+      borrowTime: borrowTime.getTime(),
+      expireTime: expireTime.getTime(),
+      remainMs: Math.max(0, remainMs)
+    });
+  }
+
+  // 依到期時間排序
+  active.sort((a, b) => a.expireTime - b.expireTime);
+  return { ok: true, minutes, active, now: now.getTime() };
 }
 
 function doSetAutoReturn(minutes) {
