@@ -1468,7 +1468,7 @@ function renderAutoReturnStatus() {
   const now = Date.now();
   const offset = now - autoReturnData.now;
 
-  let html = '<div style="font-size:15px;font-weight:700;margin-bottom:10px">⏱️ 自動歸還倒數</div>';
+  let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:15px;font-weight:700">⏱️ 自動歸還倒數</span><button class="btn btn-sm" onclick="loadAutoReturnStatus()" style="background:var(--gray-200);font-size:13px">🔄 刷新</button></div>';
   for (const item of autoReturnData.active) {
     const remain = Math.max(0, item.expireTime - now + offset);
     const min = Math.floor(remain / 60000);
