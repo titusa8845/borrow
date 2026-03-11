@@ -67,12 +67,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 4px 14px;
-    border-radius: 12px;
-    min-width: 60px;
+    padding: 6px 20px;
+    border-radius: 14px;
+    min-width: 80px;
   }
-  .eq-chip-num { font-size: 26px; font-weight: 800; line-height: 1.1; }
-  .eq-chip-name { font-size: 11px; opacity: 0.85; }
+  .eq-chip-num { font-size: 38px; font-weight: 800; line-height: 1.1; }
+  .eq-chip-name { font-size: 15px; opacity: 0.85; }
   .eq-chip.green  { background: #e6f9f0; color: #27ae60; }
   .eq-chip.yellow { background: #fff8e1; color: #f39c12; }
   .eq-chip.red    { background: #fdecea; color: #e74c3c; }
@@ -1096,19 +1096,9 @@ async function selectStudent(seat, name, btnEl) {
   `;
   document.getElementById('mainContent').appendChild(panel);
 
-  // 樂觀更新：先顯示快取的器材
-  const cachedEq = cacheGet('equipment');
-  if (cachedEq) {
-    equipmentData = cachedEq;
-    borrowQty = {};
-    cachedEq.forEach(eq => borrowQty[eq.name] = 0);
-    renderEquipment();
-    renderDashboard(cachedEq);
-  }
-
-  // 背景更新器材
+  // 每次選學生都重新載入最新庫存，確保數字正確
   const res = await api({ action: 'getEquipment' });
-  if (!res.ok) { if (!cachedEq) document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  if (!res.ok) { document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗，請重試</div>'; return; }
   cacheSet('equipment', res.data);
   equipmentData = res.data;
   borrowQty = {};
