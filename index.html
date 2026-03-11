@@ -1189,14 +1189,9 @@ async function submitBorrow() {
       `${selectedStudent.name}（${selectedClass}）<br>借了 ${detail}`;
     document.getElementById('successOverlay').classList.add('active');
     playSuccessSound();
-    // 樂觀更新儀錶板：立即扣除借出數量
-    Object.entries(borrowQty).forEach(([name, qty]) => {
-      if (qty <= 0) return;
-      const eq = equipmentData.find(e => e.name === name);
-      if (eq) { eq.available = Math.max(0, eq.available - qty); eq.borrowed += qty; }
-    });
-    renderDashboard(equipmentData);
-    cacheSet('equipment', equipmentData);
+    // 借用成功後從 API 更新真實庫存
+    const eqRes = await api({ action: 'getEquipment' });
+    if (eqRes.ok) { cacheSet('equipment', eqRes.data); equipmentData = eqRes.data; renderDashboard(eqRes.data); }
   } else {
     showToast(res.error || '借用失敗', 'error');
     document.getElementById('submitBtn').disabled = false;
