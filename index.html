@@ -1093,19 +1093,21 @@ async function selectStudent(seat, name, btnEl) {
 
 function renderEquipment() {
   const container = document.getElementById('eqList');
-  container.innerHTML = equipmentData.filter(eq => eq.status !== '停用').map(eq => `
-    <div class="eq-card">
+  container.innerHTML = equipmentData.filter(eq => eq.status !== '停用').map(eq => {
+    const soldOut = eq.returnEnabled && eq.available <= 0;
+    return `
+    <div class="eq-card" style="${soldOut ? 'opacity:0.4;pointer-events:none' : ''}">
       <div>
         <div class="eq-name">${eq.name}(${eq.unit})</div>
-        <div class="eq-avail">${eq.returnEnabled ? `可借 ${eq.available} / ` : ''}上限 ${eq.maxPerBorrow}</div>
+        <div class="eq-avail">${soldOut ? '已借完' : (eq.returnEnabled ? `可借 ${eq.available} / ` : '') + `上限 ${eq.maxPerBorrow}`}</div>
       </div>
       <div class="qty-control">
         <button class="qty-btn" onclick="changeQty('${eq.name}', -1)">&#8722;</button>
         <div class="qty-value ${borrowQty[eq.name] > 0 ? 'has-value' : ''}">${borrowQty[eq.name]}</div>
         <button class="qty-btn" onclick="changeQty('${eq.name}', 1)">&#43;</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   const hasAny = Object.values(borrowQty).some(v => v > 0);
   document.getElementById('submitBtn').disabled = !hasAny;
