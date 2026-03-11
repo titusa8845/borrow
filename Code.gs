@@ -19,6 +19,7 @@ const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 function doGet(e) {
   const params = e ? e.parameter : {};
   try {
+    autoReturn(); // 每次 API 呼叫時順便檢查自動歸還
     const result = dispatch(params);
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
