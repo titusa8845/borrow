@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>義方國小借球系統</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #dbeafe;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+    font-size: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: var(--gray-900);
+  }
+
+  .app {
+    max-width: 520px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--gray-50);
+  }
+
+  /* === 頂部 === */
+  .header {
+    background: white;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gear-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-100);
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .gear-btn:hover { background: var(--gray-200); }
+
+  /* === 主內容 === */
+  .content { padding: 16px; }
+
+  .panel {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  /* === 班級按鈕 === */
+  .class-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .class-btn {
+    padding: 22px 12px;
+    font-size: 20px;
+    font-weight: 700;
+    border: 3px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .class-btn:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-2px);
+  }
+  .class-btn:active { transform: translateY(0); }
+
+  .class-btn.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+  }
+
+  /* === 學生按鈕 === */
+  .student-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .student-btn {
+    padding: 16px 14px;
+    font-size: 18px;
+    font-weight: 600;
+    border: 2px solid var(--gray-200);
+    border-radius: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .student-btn:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  .student-btn.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+  }
+
+  .student-btn.selected .seat {
+    background: rgba(255,255,255,0.3);
+    color: white;
+  }
+
+  .seat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* === 數量選擇 === */
+  .eq-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .eq-card:last-child { border-bottom: none; }
+
+  .eq-name {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .eq-avail {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin-top: 2px;
+  }
+
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .qty-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    border: 2px solid var(--gray-200);
+    background: white;
+    font-size: 26px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    color: var(--gray-700);
+    user-select: none;
+  }
+
+  .qty-btn:hover { background: var(--gray-100); }
+  .qty-btn:active { transform: scale(0.9); }
+
+  .qty-value {
+    width: 48px;
+    text-align: center;
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
+  .qty-value.has-value { color: var(--success); }
+
+  /* === 送出按鈕 === */
+  .submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 20px;
+    font-size: 22px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--success);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.3);
+  }
+
+  .submit-btn:hover { background: #15803d; }
+  .submit-btn:active { transform: scale(0.97); }
+  .submit-btn:disabled {
+    background: var(--gray-300);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* === 重選按鈕 === */
+  .change-btn {
+    font-size: 14px;
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .change-btn:hover { background: var(--primary-light); }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .panel-header .panel-label { margin-bottom: 0; }
+
+  .selected-info {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  /* === 成功畫面 === */
+  .success-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 500;
+    justify-content: center;
+    align-items: center;
+  }
+  .success-overlay.active { display: flex; }
+
+  .success-box {
+    background: white;
+    border-radius: 24px;
+    padding: 48px 32px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+    animation: popIn 0.3s ease;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .success-icon { font-size: 72px; margin-bottom: 16px; }
+
+  .success-text {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 12px;
+  }
+
+  .success-detail {
+    font-size: 16px;
+    color: var(--gray-500);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .success-close-btn {
+    padding: 16px 40px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+  }
+
+  /* === Loading === */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-500);
+    font-size: 18px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 32px; height: 32px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============ 後台管理 ============ */
+  .admin-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 60px;
+  }
+  .admin-overlay.active { display: flex; }
+
+  .admin-panel {
+    background: white;
+    border-radius: 20px;
+    width: 95%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+
+  .admin-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    z-index: 10;
+  }
+
+  .admin-header h2 { font-size: 22px; font-weight: 700; }
+
+  .close-btn {
+    width: 44px; height: 44px;
+    border: none;
+    background: var(--gray-100);
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .admin-tabs {
+    display: flex;
+    padding: 12px 16px 0;
+    gap: 4px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .tab-btn {
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-500);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .tab-content { display: none; padding: 20px; }
+  .tab-content.active { display: block; }
+
+  /* 密碼 */
+  .pw-dialog {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    justify-content: center;
+    align-items: center;
+  }
+  .pw-dialog.active { display: flex; }
+
+  .pw-box {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    width: 90%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+
+  .pw-box h3 { font-size: 22px; margin-bottom: 20px; }
+
+  .pw-input {
+    width: 100%;
+    padding: 16px;
+    font-size: 20px;
+    border: 2px solid var(--gray-200);
+    border-radius: 14px;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .pw-input:focus { border-color: var(--primary); }
+
+  .pw-error {
+    color: var(--danger);
+    font-size: 15px;
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .pw-buttons { display: flex; gap: 12px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 28px;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-outline { background: white; color: var(--gray-700); border: 2px solid var(--gray-200); }
+  .btn-outline:hover { border-color: var(--gray-300); background: var(--gray-50); }
+  .btn-sm { padding: 10px 18px; font-size: 15px; width: auto; }
+
+  .pw-buttons .btn { flex: 1; }
+
+  /* 管理表格 */
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+
+  .admin-table th {
+    background: var(--gray-100);
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--gray-500);
+  }
+
+  .admin-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .status-badge.active { background: var(--danger-light); color: var(--danger); }
+  .status-badge.returned { background: var(--success-light); color: var(--success); }
+
+  .return-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    background: var(--success);
+    color: white;
+    cursor: pointer;
+  }
+
+  .admin-input {
+    width: 100%;
+    padding: 14px;
+    font-size: 17px;
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    outline: none;
+    margin-bottom: 10px;
+  }
+  .admin-input:focus { border-color: var(--primary); }
+
+  .admin-input-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .admin-input-row .admin-input { margin-bottom: 0; }
+
+  .admin-select {
+    width: 100%;
+    padding: 14px;
+    font-size: 17px;
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    outline: none;
+    margin-bottom: 16px;
+    background: white;
+  }
+
+  .admin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--gray-50);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .del-btn {
+    padding: 8px 14px;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    background: var(--danger-light);
+    color: var(--danger);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .eq-edit-card {
+    background: var(--gray-50);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .eq-edit-card .eq-edit-name { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+
+  .eq-edit-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+
+  .eq-edit-row label { min-width: 70px; color: var(--gray-500); font-weight: 600; }
+
+  .eq-edit-row input {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    outline: none;
+    width: 80px;
+  }
+  .eq-edit-row input:focus { border-color: var(--primary); }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
+
+  .filter-btn {
+    padding: 10px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--gray-500);
+  }
+
+  .filter-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 16px 28px;
+    border-radius: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    color: white;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  }
+  /* Toggle switch */
+  #returnToggle:checked + span { background: var(--success); }
+  #returnToggle:checked ~ #toggleKnob { left: 29px; }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  /* === RWD 平板 (768px+) === */
+  @media (min-width: 768px) {
+    .app { max-width: 720px; }
+
+    .header h1 { font-size: 30px; }
+    .header { padding: 24px 32px; }
+
+    .content { padding: 24px; }
+
+    .class-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .class-btn {
+      padding: 28px 16px;
+      font-size: 24px;
+    }
+
+    .student-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .student-btn {
+      padding: 18px 16px;
+      font-size: 20px;
+    }
+
+    .eq-card { padding: 20px 0; }
+    .eq-name { font-size: 24px; }
+    .qty-btn { width: 56px; height: 56px; font-size: 28px; }
+    .qty-value { font-size: 34px; width: 56px; }
+
+    .submit-btn { padding: 22px; font-size: 24px; }
+
+    .panel { padding: 28px; }
+    .panel-label { font-size: 15px; }
+    .selected-info { font-size: 26px; }
+
+    .success-box { padding: 56px 40px; }
+    .success-icon { font-size: 88px; }
+    .success-text { font-size: 32px; }
+
+    .admin-panel { max-width: 680px; }
+  }
+
+  /* === 大平板/桌面 (1024px+) === */
+  @media (min-width: 1024px) {
+    .app { max-width: 860px; }
+
+    .class-grid { grid-template-columns: repeat(4, 1fr); }
+    .student-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>&#127992; 義方國小借球系統</h1>
+    <button class="gear-btn" onclick="openAdmin()" title="管理後台">&#9881;</button>
+  </div>
+
+  <div class="content" id="mainContent">
+    <!-- 班級面板（永遠顯示） -->
+    <div class="panel" id="classPanel">
+      <div class="panel-label">🏫 ① 選擇班級</div>
+      <div class="class-grid" id="classGrid">
+        <div class="loading"><div class="spinner"></div><br>載入中...</div>
+      </div>
+    </div>
+
+    <!-- 學生面板（選了班級後出現） -->
+    <!-- 數量面板（選了學生後出現） -->
+    <!-- 送出按鈕（選了數量後出現） -->
+  </div>
+</div>
+
+<!-- 成功彈窗 -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div class="success-icon">🎉</div>
+    <div class="success-text">借用成功！</div>
+    <div class="success-detail" id="successDetail"></div>
+    <button class="success-close-btn" onclick="resetAll()">👍 OK</button>
+  </div>
+</div>
+
+<!-- 密碼 -->
+<div class="pw-dialog" id="pwDialog">
+  <div class="pw-box">
+    <h3>&#128274; 輸入管理密碼</h3>
+    <input type="password" class="pw-input" id="pwInput" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')verifyPw()">
+    <div class="pw-error" id="pwError">密碼錯誤，請重試</div>
+    <div class="pw-buttons">
+      <button class="btn btn-outline btn-sm" onclick="closePwDialog()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="verifyPw()">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- 後台 -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <h2>&#128736; 後台管理</h2>
+      <button class="close-btn" onclick="closeAdmin()">&#10005;</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="tab-btn active" onclick="switchTab('records')">📋 紀錄</button>
+      <button class="tab-btn" onclick="switchTab('classes')">🏫 班級</button>
+      <button class="tab-btn" onclick="switchTab('students')">👨‍🎓 學生</button>
+      <button class="tab-btn" onclick="switchTab('equipment')">📦 庫存</button>
+      <button class="tab-btn" onclick="switchTab('settings')">⚙️ 設定</button>
+    </div>
+
+    <div class="tab-content active" id="tab-records">
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="filterRecords('all', this)">📑 全部</button>
+        <button class="filter-btn" onclick="filterRecords('active', this)">🔴 借出中</button>
+        <button class="filter-btn" onclick="toggleDateFilter()">&#128197; 查日期</button>
+      </div>
+      <div id="dateFilterRow" style="display:none; margin-bottom:16px;">
+        <div class="admin-input-row">
+          <input type="date" class="admin-input" id="queryDate" style="margin-bottom:0">
+          <button class="btn btn-primary btn-sm" onclick="queryByDate()" style="min-width:80px">查詢</button>
+        </div>
+      </div>
+      <div id="recordsTable"><div class="loading"><div class="spinner"></div><br>載入中...</div></div>
+    </div>
+
+    <div class="tab-content" id="tab-classes">
+      <div class="admin-input-row">
+        <input class="admin-input" id="newClassName" placeholder="新班級名稱">
+        <button class="btn btn-primary btn-sm" onclick="addClass()" style="min-width:80px">➕ 新增</button>
+      </div>
+      <div id="classList"></div>
+    </div>
+
+    <div class="tab-content" id="tab-students">
+      <div style="margin-bottom:16px">
+        <button class="btn btn-outline btn-sm" onclick="toggleImport()" style="width:100%;margin-bottom:8px">&#128229; JSON 批量匯入學生</button>
+        <div id="importArea" style="display:none">
+          <textarea class="admin-input" id="importJson" rows="6" placeholder='[&#10;  {"班級":"七年一班","座號":1,"姓名":"王小明"},&#10;  {"班級":"七年一班","座號":2,"姓名":"李小華"}&#10;]' style="font-size:14px;font-family:monospace;resize:vertical"></textarea>
+          <button class="btn btn-primary" onclick="importStudents()">確認匯入</button>
+        </div>
+      </div>
+      <select class="admin-select" id="adminClassSelect" onchange="loadAdminStudents()">
+        <option value="">-- 選擇班級 --</option>
+      </select>
+      <div class="admin-input-row" id="addStudentRow" style="display:none">
+        <input class="admin-input" id="newStudentSeat" placeholder="座號" style="max-width:80px">
+        <input class="admin-input" id="newStudentName" placeholder="姓名">
+        <button class="btn btn-primary btn-sm" onclick="addStudent()" style="min-width:80px">➕ 新增</button>
+      </div>
+      <div id="adminStudentList"></div>
+    </div>
+
+    <div class="tab-content" id="tab-equipment">
+      <div id="eqEditList"></div>
+      <div style="border-top:1px solid var(--gray-200); padding-top:16px; margin-top:16px">
+        <div style="font-weight:700; margin-bottom:12px; font-size:17px">➕ 新增器材</div>
+        <div class="admin-input-row">
+          <input class="admin-input" id="newEqName" placeholder="名稱">
+          <input class="admin-input" id="newEqUnit" placeholder="單位" style="max-width:80px">
+        </div>
+        <div class="admin-input-row">
+          <input class="admin-input" id="newEqTotal" placeholder="總數量" type="number">
+          <input class="admin-input" id="newEqMax" placeholder="單次上限" type="number">
+        </div>
+        <button class="btn btn-primary" onclick="addEquipment()">➕ 新增器材</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-settings">
+      <div class="admin-item" style="justify-content:space-between">
+        <span style="font-size:17px">↩️ 啟用歸還功能</span>
+        <label style="position:relative;display:inline-block;width:56px;height:30px;cursor:pointer">
+          <input type="checkbox" id="returnToggle" onchange="toggleReturnSetting()" style="opacity:0;width:0;height:0">
+          <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--gray-300);border-radius:30px;transition:0.3s"></span>
+          <span style="position:absolute;top:3px;left:3px;width:24px;height:24px;background:white;border-radius:50%;transition:0.3s;box-shadow:0 2px 4px rgba(0,0,0,0.2)" id="toggleKnob"></span>
+        </label>
+      </div>
+      <div style="font-size:14px;color:var(--gray-500);margin-top:8px">開啟後，借用紀錄中會顯示「歸還」按鈕，且借用時會檢查庫存上限</div>
+      <div style="margin-top:20px">
+        <button class="btn" style="background:#e74c3c;color:white;width:100%" onclick="resetInventory()">🔄 重設統計數量（恢復庫存）</button>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:6px">將所有「借出中」紀錄標記為已歸還，恢復所有庫存數量</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+// 設定：請將下方 URL 改為你的 Google Apps Script Web App 網址
+// ==========================================
+const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+
+// === 狀態 ===
+let selectedClass = '';
+let selectedStudent = null;
+let equipmentData = [];
+let borrowQty = {};
+let adminPw = '';
+let returnEnabled = false;
+
+// === API ===
+async function api(params) {
+  const url = new URL(API_URL);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  try {
+    const res = await fetch(url.toString());
+    return await res.json();
+  } catch (e) {
+    showToast('❌ 網路錯誤，請檢查連線', 'error');
+    return { ok: false, error: '網路錯誤' };
+  }
+}
+
+// === 重置全部 ===
+function resetAll() {
+  selectedClass = '';
+  selectedStudent = null;
+  equipmentData = [];
+  borrowQty = {};
+  document.getElementById('successOverlay').classList.remove('active');
+  // 移除學生和數量面板
+  const sp = document.getElementById('studentPanel');
+  const ep = document.getElementById('eqPanel');
+  if (sp) sp.remove();
+  if (ep) ep.remove();
+  // 重新顯示班級選擇（移除已選狀態）
+  const cp = document.getElementById('classPanel');
+  cp.innerHTML = '<div class="panel-label">🏫 ① 選擇班級</div><div class="class-grid" id="classGrid"></div>';
+  loadClasses();
+}
+
+// === 載入班級 ===
+async function loadClasses() {
+  const grid = document.getElementById('classGrid');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入中...</div>';
+  const res = await api({ action: 'getClasses' });
+  if (!res.ok) { grid.innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  if (res.data.length === 0) { grid.innerHTML = '<div class="loading">📭 尚無班級<br>請在後台新增</div>'; return; }
+  grid.innerHTML = res.data.map(name =>
+    `<button class="class-btn" onclick="selectClass('${name.replace(/'/g, "\\'")}')">${name}</button>`
+  ).join('');
+}
+
+// === 選班級 ===
+async function selectClass(name) {
+  selectedClass = name;
+  selectedStudent = null;
+
+  // 班級面板變成已選狀態
+  const cp = document.getElementById('classPanel');
+  cp.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-label">🏫 ① 班級</div>
+      <button class="change-btn" onclick="resetAll()">🔄 重選</button>
+    </div>
+    <div class="selected-info">${name}</div>
+  `;
+
+  // 移除舊的學生和數量面板
+  const oldSp = document.getElementById('studentPanel');
+  const oldEp = document.getElementById('eqPanel');
+  if (oldSp) oldSp.remove();
+  if (oldEp) oldEp.remove();
+
+  // 新增學生面板
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.id = 'studentPanel';
+  panel.innerHTML = `
+    <div class="panel-label">🙋 ② 選擇學生</div>
+    <div class="student-grid" id="studentGrid">
+      <div class="loading"><div class="spinner"></div><br>載入中...</div>
+    </div>
+  `;
+  document.getElementById('mainContent').appendChild(panel);
+
+  // 載入學生
+  const res = await api({ action: 'getStudents', class: name });
+  const grid = document.getElementById('studentGrid');
+  if (!res.ok) { grid.innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  if (res.data.length === 0) { grid.innerHTML = '<div class="loading">此班尚無學生</div>'; return; }
+  grid.innerHTML = res.data.map(s =>
+    `<button class="student-btn" onclick="selectStudent(${s.seat}, '${s.name.replace(/'/g, "\\'")}', this)">
+      <span class="seat">${String(s.seat).padStart(2, '0')}</span>${s.name}
+    </button>`
+  ).join('');
+
+  // 滾到學生面板
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// === 選學生 ===
+async function selectStudent(seat, name, btnEl) {
+  selectedStudent = { seat, name };
+
+  // 高亮選中的學生
+  document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('selected'));
+  if (btnEl) btnEl.classList.add('selected');
+
+  // 移除舊的數量面板
+  const oldEp = document.getElementById('eqPanel');
+  if (oldEp) oldEp.remove();
+
+  // 新增數量面板
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.id = 'eqPanel';
+  panel.innerHTML = `
+    <div class="panel-label">🏸 ③ 選擇數量</div>
+    <div id="eqList"><div class="loading"><div class="spinner"></div><br>載入中...</div></div>
+    <div style="margin-top:16px">
+      <button class="submit-btn" id="submitBtn" onclick="submitBorrow()" disabled>✅ 確認借用</button>
+    </div>
+  `;
+  document.getElementById('mainContent').appendChild(panel);
+
+  // 載入器材
+  const res = await api({ action: 'getEquipment' });
+  if (!res.ok) { document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  equipmentData = res.data;
+  borrowQty = {};
+  res.data.forEach(eq => borrowQty[eq.name] = 0);
+  renderEquipment();
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderEquipment() {
+  const container = document.getElementById('eqList');
+  container.innerHTML = equipmentData.map(eq => `
+    <div class="eq-card">
+      <div>
+        <div class="eq-name">${eq.name}(${eq.unit})</div>
+        <div class="eq-avail">可借 ${eq.available} / 上限 ${eq.maxPerBorrow}</div>
+      </div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="changeQty('${eq.name}', -1)">&#8722;</button>
+        <div class="qty-value ${borrowQty[eq.name] > 0 ? 'has-value' : ''}">${borrowQty[eq.name]}</div>
+        <button class="qty-btn" onclick="changeQty('${eq.name}', 1)">&#43;</button>
+      </div>
+    </div>
+  `).join('');
+
+  const hasAny = Object.values(borrowQty).some(v => v > 0);
+  document.getElementById('submitBtn').disabled = !hasAny;
+}
+
+function changeQty(name, delta) {
+  const eq = equipmentData.find(e => e.name === name);
+  const newVal = borrowQty[name] + delta;
+  if (newVal < 0) return;
+  if (newVal > eq.available) { showToast(`${name} 庫存不足`, 'error'); return; }
+  if (newVal > eq.maxPerBorrow) { showToast(`${name} 單次上限 ${eq.maxPerBorrow}`, 'error'); return; }
+  borrowQty[name] = newVal;
+  renderEquipment();
+}
+
+// === 送出 ===
+async function submitBorrow() {
+  const items = Object.entries(borrowQty)
+    .filter(([_, qty]) => qty > 0)
+    .map(([name, qty]) => `${name}:${qty}`)
+    .join(',');
+
+  if (!items) { showToast('請至少選擇一項', 'error'); return; }
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = '送出中...';
+
+  const res = await api({
+    action: 'borrow',
+    class: selectedClass,
+    seat: selectedStudent.seat,
+    name: selectedStudent.name,
+    items: items
+  });
+
+  if (res.ok) {
+    const detail = Object.entries(borrowQty)
+      .filter(([_, qty]) => qty > 0)
+      .map(([name, qty]) => {
+        const eq = equipmentData.find(e => e.name === name);
+        return `${name} ${qty}${eq ? eq.unit : ''}`;
+      }).join('、');
+    document.getElementById('successDetail').textContent =
+      `${selectedStudent.name}（${selectedClass}）\n借了 ${detail}`;
+    document.getElementById('successOverlay').classList.add('active');
+  } else {
+    showToast(res.error || '借用失敗', 'error');
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').innerHTML = '&#10003; 確認借用';
+  }
+}
+
+// ============ 後台管理 ============
+function openAdmin() {
+  if (adminPw) { showAdminPanel(); }
+  else {
+    document.getElementById('pwDialog').classList.add('active');
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwError').style.display = 'none';
+    setTimeout(() => document.getElementById('pwInput').focus(), 100);
+  }
+}
+
+function closePwDialog() { document.getElementById('pwDialog').classList.remove('active'); }
+
+async function verifyPw() {
+  const pw = document.getElementById('pwInput').value;
+  if (!pw) return;
+  const res = await api({ action: 'verifyPassword', pw });
+  if (res.ok) { adminPw = pw; closePwDialog(); showAdminPanel(); }
+  else { document.getElementById('pwError').style.display = 'block'; }
+}
+
+async function showAdminPanel() {
+  document.getElementById('adminOverlay').classList.add('active');
+  switchTab('records');
+  // 載入設定
+  const res = await api({ action: 'getSettings', pw: adminPw });
+  if (res.ok && res.data) {
+    returnEnabled = res.data.RETURN_ENABLED?.toString().toUpperCase() === 'TRUE';
+    document.getElementById('returnToggle').checked = returnEnabled;
+    updateToggleUI();
+  }
+}
+
+function closeAdmin() { document.getElementById('adminOverlay').classList.remove('active'); }
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick*="${tabName}"]`).classList.add('active');
+  document.getElementById(`tab-${tabName}`).classList.add('active');
+  if (tabName === 'records') loadRecords('all');
+  if (tabName === 'classes') loadAdminClasses();
+  if (tabName === 'students') loadAdminClassSelect();
+  if (tabName === 'equipment') loadAdminEquipment();
+}
+
+// 借用紀錄
+async function loadRecords(filter) {
+  const container = document.getElementById('recordsTable');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入中...</div>';
+  const res = await api({ action: 'getRecords', pw: adminPw, filter });
+  if (!res.ok) { container.innerHTML = '<div class="loading">載入失敗</div>'; return; }
+  if (res.data.length === 0) { container.innerHTML = '<div class="loading">沒有紀錄</div>'; return; }
+  let html = '<table class="admin-table"><thead><tr><th>時間</th><th>班級/姓名</th><th>器材</th><th>狀態</th></tr></thead><tbody>';
+  res.data.forEach(r => {
+    const cls = r.status === '借出中' ? 'active' : 'returned';
+    const btn = (r.status === '借出中' && returnEnabled) ? `<button class="return-btn" onclick="returnItem(${r.row})">↩️ 歸還</button>` : '';
+    html += `<tr><td style="font-size:13px">${r.time}</td><td>${r.className}<br><b>${r.name}</b></td><td>${r.equipment} x${r.qty}</td><td><span class="status-badge ${cls}">${r.status}</span><br>${btn}</td></tr>`;
+  });
+  container.innerHTML = html + '</tbody></table>';
+}
+
+function filterRecords(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('dateFilterRow').style.display = 'none';
+  loadRecords(filter);
+}
+
+function toggleDateFilter() {
+  const row = document.getElementById('dateFilterRow');
+  row.style.display = row.style.display === 'none' ? 'block' : 'none';
+  if (row.style.display === 'block') {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('queryDate').value = today;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  }
+}
+
+function queryByDate() {
+  const dateVal = document.getElementById('queryDate').value;
+  if (!dateVal) { showToast('請選擇日期', 'error'); return; }
+  const formatted = dateVal.replace(/-/g, '/');
+  loadRecords(formatted);
+}
+
+async function returnItem(row) {
+  if (!confirm('確認歸還？')) return;
+  const res = await api({ action: 'returnItem', pw: adminPw, row });
+  if (res.ok) { showToast('✅ 歸還成功', 'success'); loadRecords('all'); }
+  else showToast(res.error || '歸還失敗', 'error');
+}
+
+// 班級管理
+async function loadAdminClasses() {
+  const container = document.getElementById('classList');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const res = await api({ action: 'getClasses' });
+  if (!res.ok) return;
+  container.innerHTML = res.data.map(name =>
+    `<div class="admin-item"><span>${name}</span><button class="del-btn" onclick="deleteClass('${name.replace(/'/g, "\\'")}')">🗑️</button></div>`
+  ).join('') || '<div class="loading">尚無班級</div>';
+}
+
+async function addClass() {
+  const name = document.getElementById('newClassName').value.trim();
+  if (!name) return;
+  const res = await api({ action: 'addClass', pw: adminPw, name });
+  if (res.ok) { document.getElementById('newClassName').value = ''; showToast('新增成功', 'success'); loadAdminClasses(); }
+  else showToast(res.error || '新增失敗', 'error');
+}
+
+async function deleteClass(name) {
+  if (!confirm(`確認刪除「${name}」？`)) return;
+  const res = await api({ action: 'deleteClass', pw: adminPw, name });
+  if (res.ok) { showToast('已刪除', 'success'); loadAdminClasses(); }
+  else showToast(res.error || '刪除失敗', 'error');
+}
+
+// 學生管理
+async function loadAdminClassSelect() {
+  const select = document.getElementById('adminClassSelect');
+  const res = await api({ action: 'getClasses' });
+  if (!res.ok) return;
+  select.innerHTML = '<option value="">-- 選擇班級 --</option>' + res.data.map(name => `<option value="${name}">${name}</option>`).join('');
+  document.getElementById('addStudentRow').style.display = 'none';
+  document.getElementById('adminStudentList').innerHTML = '';
+}
+
+async function loadAdminStudents() {
+  const cls = document.getElementById('adminClassSelect').value;
+  const container = document.getElementById('adminStudentList');
+  const addRow = document.getElementById('addStudentRow');
+  if (!cls) { container.innerHTML = ''; addRow.style.display = 'none'; return; }
+  addRow.style.display = 'flex';
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const res = await api({ action: 'getStudents', class: cls });
+  if (!res.ok) return;
+  container.innerHTML = res.data.map(s =>
+    `<div class="admin-item"><span><b>${String(s.seat).padStart(2, '0')}</b>&nbsp;&nbsp;${s.name}</span><button class="del-btn" onclick="deleteStudent('${cls.replace(/'/g, "\\'")}', ${s.seat})">🗑️</button></div>`
+  ).join('') || '<div class="loading">此班尚無學生</div>';
+}
+
+async function addStudent() {
+  const cls = document.getElementById('adminClassSelect').value;
+  const seat = document.getElementById('newStudentSeat').value.trim();
+  const name = document.getElementById('newStudentName').value.trim();
+  if (!cls || !seat || !name) { showToast('請填寫完整', 'error'); return; }
+  const res = await api({ action: 'addStudent', pw: adminPw, class: cls, seat, name });
+  if (res.ok) {
+    document.getElementById('newStudentSeat').value = '';
+    document.getElementById('newStudentName').value = '';
+    showToast('新增成功', 'success'); loadAdminStudents();
+  } else showToast(res.error || '新增失敗', 'error');
+}
+
+async function deleteStudent(cls, seat) {
+  if (!confirm('確認刪除此學生？')) return;
+  const res = await api({ action: 'deleteStudent', pw: adminPw, class: cls, seat });
+  if (res.ok) { showToast('已刪除', 'success'); loadAdminStudents(); }
+  else showToast(res.error || '刪除失敗', 'error');
+}
+
+// JSON 匯入
+function toggleImport() {
+  const area = document.getElementById('importArea');
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+async function importStudents() {
+  const json = document.getElementById('importJson').value.trim();
+  if (!json) { showToast('請貼上 JSON 資料', 'error'); return; }
+  try { JSON.parse(json); } catch (e) { showToast('JSON 格式錯誤', 'error'); return; }
+  const res = await api({ action: 'importStudents', pw: adminPw, data: json });
+  if (res.ok) {
+    showToast(res.message || '匯入成功', 'success');
+    document.getElementById('importJson').value = '';
+    document.getElementById('importArea').style.display = 'none';
+    loadAdminClassSelect();
+  } else showToast(res.error || '匯入失敗', 'error');
+}
+
+// 庫存管理
+async function loadAdminEquipment() {
+  const container = document.getElementById('eqEditList');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const res = await api({ action: 'getEquipment' });
+  if (!res.ok) return;
+  container.innerHTML = res.data.map(eq => `
+    <div class="eq-edit-card">
+      <div class="eq-edit-name">${eq.name}（${eq.unit}）</div>
+      <div class="eq-edit-row"><label>總數量</label><input type="number" value="${eq.total}" id="eqTotal_${eq.name}"></div>
+      <div class="eq-edit-row"><label>已借出</label><span style="font-weight:700;color:var(--danger)">${eq.borrowed}</span></div>
+      <div class="eq-edit-row"><label>單次上限</label><input type="number" value="${eq.maxPerBorrow}" id="eqMax_${eq.name}"></div>
+      <button class="btn btn-primary btn-sm" onclick="saveEquipment('${eq.name}')" style="margin-top:8px">儲存</button>
+    </div>
+  `).join('');
+}
+
+async function saveEquipment(name) {
+  const total = document.getElementById(`eqTotal_${name}`).value;
+  const max = document.getElementById(`eqMax_${name}`).value;
+  const res = await api({ action: 'updateEquipment', pw: adminPw, name, total, max });
+  if (res.ok) showToast('已更新', 'success');
+  else showToast(res.error || '更新失敗', 'error');
+}
+
+async function addEquipment() {
+  const name = document.getElementById('newEqName').value.trim();
+  const unit = document.getElementById('newEqUnit').value.trim();
+  const total = document.getElementById('newEqTotal').value;
+  const max = document.getElementById('newEqMax').value;
+  if (!name || !unit) { showToast('請填寫名稱和單位', 'error'); return; }
+  const res = await api({ action: 'addEquipment', pw: adminPw, name, unit, total, max });
+  if (res.ok) {
+    ['newEqName', 'newEqUnit', 'newEqTotal', 'newEqMax'].forEach(id => document.getElementById(id).value = '');
+    showToast('新增成功', 'success'); loadAdminEquipment();
+  } else showToast(res.error || '新增失敗', 'error');
+}
+
+function updateToggleUI() {
+  const knob = document.getElementById('toggleKnob');
+  const bg = knob.previousElementSibling;
+  if (returnEnabled) {
+    knob.style.left = '29px'; bg.style.background = 'var(--primary)';
+  } else {
+    knob.style.left = '3px'; bg.style.background = 'var(--gray-300)';
+  }
+}
+
+// 設定：歸還開關
+async function toggleReturnSetting() {
+  const checked = document.getElementById('returnToggle').checked;
+  returnEnabled = checked;
+  updateToggleUI();
+  await api({ action: 'setSetting', pw: adminPw, key: 'RETURN_ENABLED', value: checked ? 'TRUE' : 'FALSE' });
+}
+
+// 重設庫存
+async function resetInventory() {
+  if (!confirm('確定要將所有「借出中」紀錄標記為已歸還嗎？')) return;
+  const res = await api({ action: 'resetInventory', pw: adminPw });
+  if (res.ok) {
+    showToast(res.message, 'success');
+    loadAdminRecords();
+  } else showToast(res.error || '重設失敗', 'error');
+}
+
+// Toast
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type}`;
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// 初始化
+loadClasses();
+</script>
+
+</body>
+</html>
