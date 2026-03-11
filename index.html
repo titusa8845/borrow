@@ -1409,8 +1409,19 @@ function showToast(msg, type = 'success') {
   setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+// 預載所有班級的學生資料
+async function preloadStudents() {
+  const res = await api({ action: 'getClasses' });
+  if (!res.ok) return;
+  for (const name of res.data) {
+    const r = await api({ action: 'getStudents', class: name });
+    if (r.ok) cacheSet('students_' + name, r.data);
+  }
+}
+
 // 初始化
 loadClasses();
+preloadStudents();
 </script>
 
 </body>
