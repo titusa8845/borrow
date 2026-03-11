@@ -1021,7 +1021,7 @@ async function selectStudent(seat, name, btnEl) {
 
 function renderEquipment() {
   const container = document.getElementById('eqList');
-  container.innerHTML = equipmentData.map(eq => `
+  container.innerHTML = equipmentData.filter(eq => eq.status !== '停用').map(eq => `
     <div class="eq-card">
       <div>
         <div class="eq-name">${eq.name}(${eq.unit})</div>
@@ -1274,15 +1274,22 @@ async function loadAdminEquipment() {
   container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const res = await api({ action: 'getEquipment' });
   if (!res.ok) return;
-  container.innerHTML = res.data.map(eq => `
-    <div class="eq-edit-card">
-      <div class="eq-edit-name">${eq.name}（${eq.unit}）</div>
+  container.innerHTML = res.data.map(eq => {
+    const disabled = eq.status === '停用';
+    const eName = eq.name.replace(/'/g, "\\'");
+    return `
+    <div class="eq-edit-card" style="${disabled ? 'opacity:0.5' : ''}">
+      <div class="eq-edit-name">${eq.name}（${eq.unit}）${disabled ? ' 🚫 已停用' : ''}</div>
       <div class="eq-edit-row"><label>總數量</label><input type="number" value="${eq.total}" id="eqTotal_${eq.name}"></div>
       <div class="eq-edit-row"><label>已借出</label><span style="font-weight:700;color:var(--danger)">${eq.borrowed}</span></div>
       <div class="eq-edit-row"><label>單次上限</label><input type="number" value="${eq.maxPerBorrow}" id="eqMax_${eq.name}"></div>
-      <button class="btn btn-primary btn-sm" onclick="saveEquipment('${eq.name}')" style="margin-top:8px">儲存</button>
-    </div>
-  `).join('');
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="saveEquipment('${eName}')">💾 儲存</button>
+        <button class="btn btn-sm" style="background:${disabled ? '#27ae60' : '#f39c12'};color:white" onclick="toggleEquipment('${eName}')">${disabled ? '✅ 啟用' : '⏸️ 停用'}</button>
+        <button class="btn btn-sm" style="background:#e74c3c;color:white" onclick="deleteEquipment('${eName}')">🗑️ 刪除</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function saveEquipment(name) {
@@ -1291,6 +1298,19 @@ async function saveEquipment(name) {
   const res = await api({ action: 'updateEquipment', pw: adminPw, name, total, max });
   if (res.ok) showToast('已更新', 'success');
   else showToast(res.error || '更新失敗', 'error');
+}
+
+async function toggleEquipment(name) {
+  const res = await api({ action: 'toggleEquipment', pw: adminPw, name });
+  if (res.ok) { showToast(res.message, 'success'); loadAdminEquipment(); }
+  else showToast(res.error || '操作失敗', 'error');
+}
+
+async function deleteEquipment(name) {
+  if (!confirm(`確定要刪除「${name}」嗎？`)) return;
+  const res = await api({ action: 'deleteEquipment', pw: adminPw, name });
+  if (res.ok) { showToast('已刪除', 'success'); loadAdminEquipment(); }
+  else showToast(res.error || '刪除失敗', 'error');
 }
 
 async function addEquipment() {

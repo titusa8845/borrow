@@ -47,6 +47,8 @@ function dispatch(p) {
     case 'deleteStudent':  return auth(p, () => doDeleteStudent(p['class'], p.seat));
     case 'updateEquipment': return auth(p, () => doUpdateEquipment(p.name, p.total, p.max));
     case 'addEquipment':   return auth(p, () => doAddEquipment(p.name, p.unit, p.total, p.max));
+    case 'deleteEquipment': return auth(p, () => doDeleteEquipment(p.name));
+    case 'toggleEquipment': return auth(p, () => doToggleEquipment(p.name));
     case 'getSettings':    return auth(p, () => ({ ok: true, data: getSettings() }));
     case 'setSetting':     return auth(p, () => doSetSetting(p.key, p.value));
     case 'resetInventory': return auth(p, () => doResetInventory());
@@ -127,14 +129,16 @@ function getEquipment() {
     const name = row[0];
     const total = Number(row[2]);
     const borrowed = todayBorrowed[name] || 0;
+    const status = row[5] || '啟用';
     return {
       name,
       unit: row[1],
       total,
       borrowed,
-      available: returnOn ? (total - borrowed) : total,  // 歸還關閉時不限制
+      available: returnOn ? (total - borrowed) : total,
       maxPerBorrow: Number(row[4]),
-      returnEnabled: returnOn
+      returnEnabled: returnOn,
+      status
     };
   });
 }
@@ -324,8 +328,28 @@ function doUpdateEquipment(name, total, max) {
 function doAddEquipment(name, unit, total, max) {
   if (!name || !unit) return { ok: false, error: '請填寫完整資料' };
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('器材');
-  sheet.appendRow([name, unit, parseInt(total) || 0, 0, parseInt(max) || 1]);
+  sheet.appendRow([name, unit, parseInt(total) || 0, 0, parseInt(max) || 1, '啟用']);
   return { ok: true, message: '器材新增成功' };
+}
+
+function doDeleteEquipment(name) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('器材');
+  const data = sheet.getDataRange().getValues();
+  const rowIdx = data.findIndex(row => row[0] === name);
+  if (rowIdx === -1) return { ok: false, error: '找不到此器材' };
+  sheet.deleteRow(rowIdx + 1);
+  return { ok: true, message: '器材已刪除' };
+}
+
+function doToggleEquipment(name) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('器材');
+  const data = sheet.getDataRange().getValues();
+  const rowIdx = data.findIndex(row => row[0] === name);
+  if (rowIdx === -1) return { ok: false, error: '找不到此器材' };
+  const current = data[rowIdx][5] || '啟用';
+  const newStatus = current === '啟用' ? '停用' : '啟用';
+  sheet.getRange(rowIdx + 1, 6).setValue(newStatus);
+  return { ok: true, message: `${name} 已${newStatus}` };
 }
 
 // ========== 重設庫存（將今日所有「借出中」標記為已歸還）==========
