@@ -1196,6 +1196,14 @@ async function submitBorrow() {
     document.getElementById('successDetail').innerHTML =
       `${selectedStudent.name}（${selectedClass}）<br>借了 ${detail}`;
     document.getElementById('successOverlay').classList.add('active');
+    // 樂觀更新儀錶板：立即扣除借出數量
+    Object.entries(borrowQty).forEach(([name, qty]) => {
+      if (qty <= 0) return;
+      const eq = equipmentData.find(e => e.name === name);
+      if (eq) { eq.available = Math.max(0, eq.available - qty); eq.borrowed += qty; }
+    });
+    renderDashboard(equipmentData);
+    cacheSet('equipment', equipmentData);
   } else {
     showToast(res.error || '借用失敗', 'error');
     document.getElementById('submitBtn').disabled = false;
