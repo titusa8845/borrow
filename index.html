@@ -894,6 +894,23 @@
     </div>
 
     <div class="tab-content" id="tab-settings">
+      <!-- 簡化步驟 -->
+      <div class="admin-item" style="justify-content:space-between;margin-bottom:0">
+        <span style="font-size:17px">⚡ 簡化步驟模式</span>
+        <label style="position:relative;display:inline-block;width:56px;height:30px;cursor:pointer">
+          <input type="checkbox" id="simpleModeToggle" onchange="toggleSimpleMode()" style="opacity:0;width:0;height:0">
+          <span id="simpleBg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--gray-300);border-radius:30px;transition:0.3s"></span>
+          <span id="simpleKnob" style="position:absolute;top:3px;left:3px;width:24px;height:24px;background:white;border-radius:50%;transition:0.3s;box-shadow:0 2px 4px rgba(0,0,0,0.2)"></span>
+        </label>
+      </div>
+      <div style="font-size:14px;color:var(--gray-500);margin-top:8px;margin-bottom:12px">開啟後，選完班級和學生即可直接借出，無需手動選數量</div>
+      <div id="simpleSettingsPanel" style="display:none;background:var(--gray-50);border-radius:12px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:15px;margin-bottom:12px">📦 載入借用項目（預設值）</div>
+        <div id="simpleDefaultsList"><div style="color:var(--gray-500);font-size:14px">載入中...</div></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="saveSimpleDefaults()">💾 儲存預設值</button>
+      </div>
+      <div style="border-top:1px solid var(--gray-200);margin-bottom:16px"></div>
+
       <div class="admin-item" style="justify-content:space-between">
         <span style="font-size:17px">↩️ 啟用歸還功能</span>
         <label style="position:relative;display:inline-block;width:56px;height:30px;cursor:pointer">
@@ -939,7 +956,92 @@ let selectedStudent = null;
 let equipmentData = [];
 let borrowQty = {};
 let adminPw = '';
-let returnEnabled = false;
+let returnEnabled = true;
+let simpleModeEnabled = false;
+let simpleDefaults = {}; // { 器材名: 預設數量 }
+
+function loadSimpleSettings() {
+  simpleModeEnabled = localStorage.getItem('simpleMode') === 'true';
+  try { simpleDefaults = JSON.parse(localStorage.getItem('simpleDefaults') || '{}'); } catch(e) { simpleDefaults = {}; }
+}
+
+function toggleSimpleMode() {
+  simpleModeEnabled = document.getElementById('simpleModeToggle').checked;
+  updateSimpleModeUI();
+  localStorage.setItem('simpleMode', simpleModeEnabled);
+  if (simpleModeEnabled) renderSimpleDefaultsList();
+}
+
+function updateSimpleModeUI() {
+  const bg = document.getElementById('simpleBg');
+  const knob = document.getElementById('simpleKnob');
+  const panel = document.getElementById('simpleSettingsPanel');
+  if (!bg) return;
+  if (simpleModeEnabled) {
+    bg.style.background = 'var(--primary)';
+    knob.style.left = '29px';
+    if (panel) panel.style.display = 'block';
+  } else {
+    bg.style.background = 'var(--gray-300)';
+    knob.style.left = '3px';
+    if (panel) panel.style.display = 'none';
+  }
+}
+
+async function renderSimpleDefaultsList() {
+  const container = document.getElementById('simpleDefaultsList');
+  if (!container) return;
+  let eqData = cacheGet('equipment');
+  if (!eqData) {
+    const res = await api({ action: 'getEquipment' });
+    if (!res.ok) { container.innerHTML = '<div style="color:var(--danger);font-size:14px">載入失敗</div>'; return; }
+    eqData = res.data;
+    cacheSet('equipment', eqData);
+  }
+  const active = eqData.filter(eq => eq.status !== '停用');
+  if (active.length === 0) { container.innerHTML = '<div style="color:var(--gray-500);font-size:14px">尚無啟用的器材</div>'; return; }
+  container.innerHTML = active.map(eq => {
+    const defaultQty = simpleDefaults[eq.name] || 0;
+    const checked = defaultQty > 0 ? 'checked' : '';
+    const safeName = eq.name.replace(/'/g, "\\'");
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-200)">
+      <input type="checkbox" id="sd_chk_${eq.name}" ${checked} onchange="updateSimpleDefaultChk('${safeName}')" style="width:20px;height:20px;cursor:pointer;accent-color:var(--primary);flex-shrink:0">
+      <label for="sd_chk_${eq.name}" style="flex:1;font-size:15px;font-weight:600;cursor:pointer">${eq.name}（${eq.unit}）</label>
+      <input type="number" id="sd_qty_${eq.name}" value="${defaultQty > 0 ? defaultQty : 1}" min="1" max="${eq.maxPerBorrow}" style="width:64px;padding:8px;border:2px solid var(--gray-200);border-radius:10px;font-size:16px;text-align:center;${!checked ? 'opacity:0.4' : ''}" ${!checked ? 'disabled' : ''}>
+    </div>`;
+  }).join('');
+}
+
+function updateSimpleDefaultChk(name) {
+  const chk = document.getElementById(`sd_chk_${name}`);
+  const qty = document.getElementById(`sd_qty_${name}`);
+  if (!chk || !qty) return;
+  qty.disabled = !chk.checked;
+  qty.style.opacity = chk.checked ? '1' : '0.4';
+}
+
+function saveSimpleDefaults() {
+  const eqData = cacheGet('equipment') || [];
+  const active = eqData.filter(eq => eq.status !== '停用');
+  simpleDefaults = {};
+  active.forEach(eq => {
+    const chk = document.getElementById(`sd_chk_${eq.name}`);
+    const qty = document.getElementById(`sd_qty_${eq.name}`);
+    if (chk && chk.checked) {
+      simpleDefaults[eq.name] = Math.max(1, parseInt(qty.value) || 1);
+    }
+  });
+  localStorage.setItem('simpleDefaults', JSON.stringify(simpleDefaults));
+  showToast('✅ 預設值已儲存', 'success');
+}
+
+function renderSimpleSettingsIfNeeded() {
+  const toggle = document.getElementById('simpleModeToggle');
+  if (toggle) toggle.checked = simpleModeEnabled;
+  updateSimpleModeUI();
+  if (simpleModeEnabled) renderSimpleDefaultsList();
+}
 
 // === API ===
 async function api(params) {
@@ -1087,9 +1189,13 @@ async function selectStudent(seat, name, btnEl) {
   const panel = document.createElement('div');
   panel.className = 'panel';
   panel.id = 'eqPanel';
+  const stepLabel = simpleModeEnabled
+    ? `<div class="panel-label">🏸 ③ 借用項目<span id="simplePreviewTag" style="font-size:12px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:20px;margin-left:8px">⚡ 簡化模式</span></div>`
+    : `<div class="panel-label">🏸 ③ 選擇數量</div>`;
   panel.innerHTML = `
-    <div class="panel-label">🏸 ③ 選擇數量</div>
-    <div id="eqList"><div class="loading"><div class="spinner"></div><br>載入中...</div></div>
+    ${stepLabel}
+    <div id="simpleDefaultHint" style="display:none;font-size:14px;color:var(--gray-500);margin-bottom:10px"></div>
+    <div id="eqList"><div class="loading"><div class="spinner"></div><br>載入庫存中...</div></div>
     <div style="margin-top:16px">
       <button class="submit-btn" id="submitBtn" onclick="submitBorrow()" disabled>✅ 確認借用</button>
     </div>
@@ -1102,7 +1208,28 @@ async function selectStudent(seat, name, btnEl) {
   cacheSet('equipment', res.data);
   equipmentData = res.data;
   borrowQty = {};
-  res.data.forEach(eq => borrowQty[eq.name] = 0);
+
+  if (simpleModeEnabled && Object.keys(simpleDefaults).length > 0) {
+    // 簡化模式：套用預設值（不超過庫存上限）
+    res.data.forEach(eq => {
+      const def = simpleDefaults[eq.name] || 0;
+      const cap = eq.returnEnabled ? eq.available : eq.maxPerBorrow;
+      borrowQty[eq.name] = Math.min(def, cap);
+    });
+    // 顯示預設摘要提示
+    const hint = document.getElementById('simpleDefaultHint');
+    const summary = res.data
+      .filter(eq => borrowQty[eq.name] > 0)
+      .map(eq => `${eq.name} × ${borrowQty[eq.name]}`)
+      .join('、');
+    if (hint && summary) {
+      hint.textContent = `⚡ 已套用預設：${summary}`;
+      hint.style.display = 'block';
+    }
+  } else {
+    res.data.forEach(eq => borrowQty[eq.name] = 0);
+  }
+
   renderEquipment();
   renderDashboard(res.data);
 
@@ -1233,10 +1360,11 @@ async function showAdminPanel() {
   // 載入設定
   const res = await api({ action: 'getSettings', pw: adminPw });
   if (res.ok && res.data) {
-    returnEnabled = res.data.RETURN_ENABLED?.toString().toUpperCase() === 'TRUE';
+    const returnVal = res.data.RETURN_ENABLED?.toString().toUpperCase();
+    returnEnabled = returnVal === undefined ? true : returnVal === 'TRUE';
     document.getElementById('returnToggle').checked = returnEnabled;
     updateToggleUI();
-    const autoMin = parseInt(res.data.AUTO_RETURN_MINUTES) || 0;
+    const autoMin = parseInt(res.data.AUTO_RETURN_MINUTES) || 20;
     highlightAutoReturn(autoMin);
   }
 }
@@ -1255,7 +1383,7 @@ function switchTab(tabName) {
   if (tabName === 'classes') loadAdminClasses();
   if (tabName === 'students') loadAdminClassSelect();
   if (tabName === 'equipment') loadAdminEquipment();
-  if (tabName === 'settings') loadAutoReturnStatus();
+  if (tabName === 'settings') { loadAutoReturnStatus(); renderSimpleSettingsIfNeeded(); }
 }
 
 // 借用紀錄
@@ -1592,6 +1720,7 @@ async function preloadEquipment() {
 
 // 初始化
 async function init() {
+  loadSimpleSettings();
   // 先從快取顯示儀錶板
   const cachedEq = cacheGet('equipment');
   if (cachedEq) renderDashboard(cachedEq);
