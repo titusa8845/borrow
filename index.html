@@ -961,8 +961,12 @@ let simpleModeEnabled = false;
 let simpleDefaults = {}; // { 器材名: 預設數量 }
 
 function loadSimpleSettings() {
-  simpleModeEnabled = localStorage.getItem('simpleMode') === 'true';
-  try { simpleDefaults = JSON.parse(localStorage.getItem('simpleDefaults') || '{}'); } catch(e) { simpleDefaults = {}; }
+  const storedMode = localStorage.getItem('simpleMode');
+  simpleModeEnabled = storedMode === null ? true : storedMode === 'true';
+  try {
+    const stored = localStorage.getItem('simpleDefaults');
+    simpleDefaults = stored ? JSON.parse(stored) : { '羽毛球': 1, '球拍': 1 };
+  } catch(e) { simpleDefaults = { '羽毛球': 1, '球拍': 1 }; }
 }
 
 function toggleSimpleMode() {
