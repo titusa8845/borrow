@@ -1017,15 +1017,15 @@
 
     <div class="tab-content" id="tab-settings">
       <!-- 簡化步驟 -->
-      <div class="admin-item" style="justify-content:space-between;margin-bottom:0">
+      <div style="margin-bottom:10px">
         <span style="font-size:17px">⚡ 簡化步驟模式</span>
-        <label style="position:relative;display:inline-block;width:56px;height:30px;cursor:pointer">
-          <input type="checkbox" id="simpleModeToggle" onchange="toggleSimpleMode()" style="opacity:0;width:0;height:0">
-          <span id="simpleBg" style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--gray-300);border-radius:30px;transition:0.3s"></span>
-          <span id="simpleKnob" style="position:absolute;top:3px;left:3px;width:24px;height:24px;background:white;border-radius:50%;transition:0.3s;box-shadow:0 2px 4px rgba(0,0,0,0.2)"></span>
-        </label>
       </div>
-      <div style="font-size:14px;color:var(--gray-500);margin-top:8px;margin-bottom:12px">開啟後，選完班級和學生即可直接借出，無需手動選數量</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="smode_off"    onclick="setSimpleModeType('off')"    style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:0.2s">關閉</button>
+        <button id="smode_assist" onclick="setSimpleModeType('assist')" style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:0.2s">輔助填入</button>
+        <button id="smode_direct" onclick="setSimpleModeType('direct')" style="flex:1;padding:8px 4px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:0.2s">直接簡化</button>
+      </div>
+      <div id="simpleModeDesc" style="font-size:13px;color:var(--gray-500);margin-bottom:12px"></div>
       <div id="simpleSettingsPanel" style="display:none;background:var(--gray-50);border-radius:12px;padding:16px;margin-bottom:16px">
         <div style="font-weight:700;font-size:15px;margin-bottom:12px">📦 載入借用項目（預設值）</div>
         <div id="simpleDefaultsList"><div style="color:var(--gray-500);font-size:14px">載入中...</div></div>
@@ -1079,7 +1079,7 @@ let equipmentData = [];
 let borrowQty = {};
 let adminPw = '';
 let returnEnabled = true;
-let simpleModeEnabled = false;
+let simpleModeType = 'assist'; // 'off' | 'assist' | 'direct'
 let simpleDefaults = {}; // { 器材名: 預設數量 }
 
 // 移除 emoji 和前後空白，用於名稱比對
@@ -1100,36 +1100,36 @@ function getSimpleDefault(eqName) {
 }
 
 function loadSimpleSettings() {
-  const storedMode = localStorage.getItem('simpleMode');
-  simpleModeEnabled = storedMode === null ? false : storedMode === 'true';
+  const stored = localStorage.getItem('simpleModeType');
+  simpleModeType = stored || 'assist';
   try {
-    const stored = localStorage.getItem('simpleDefaults');
-    const parsed = stored ? JSON.parse(stored) : null;
+    const sd = localStorage.getItem('simpleDefaults');
+    const parsed = sd ? JSON.parse(sd) : null;
     simpleDefaults = (parsed && Object.keys(parsed).length > 0) ? parsed : { '羽毛球': 1, '球拍': 1 };
   } catch(e) { simpleDefaults = { '羽毛球': 1, '球拍': 1 }; }
 }
 
-function toggleSimpleMode() {
-  simpleModeEnabled = document.getElementById('simpleModeToggle').checked;
+function setSimpleModeType(type) {
+  simpleModeType = type;
+  localStorage.setItem('simpleModeType', type);
   updateSimpleModeUI();
-  localStorage.setItem('simpleMode', simpleModeEnabled);
-  if (simpleModeEnabled) renderSimpleDefaultsList();
+  if (type !== 'off') renderSimpleDefaultsList();
 }
 
 function updateSimpleModeUI() {
-  const bg = document.getElementById('simpleBg');
-  const knob = document.getElementById('simpleKnob');
   const panel = document.getElementById('simpleSettingsPanel');
-  if (!bg) return;
-  if (simpleModeEnabled) {
-    bg.style.background = 'var(--primary)';
-    knob.style.left = '29px';
-    if (panel) panel.style.display = 'block';
-  } else {
-    bg.style.background = 'var(--gray-300)';
-    knob.style.left = '3px';
-    if (panel) panel.style.display = 'none';
-  }
+  ['off','assist','direct'].forEach(t => {
+    const btn = document.getElementById(`smode_${t}`);
+    if (btn) btn.style.background = simpleModeType === t ? 'var(--primary)' : 'var(--gray-200)';
+    if (btn) btn.style.color = simpleModeType === t ? 'white' : 'var(--gray-700)';
+  });
+  if (panel) panel.style.display = simpleModeType !== 'off' ? 'block' : 'none';
+  const desc = document.getElementById('simpleModeDesc');
+  if (desc) desc.textContent = {
+    off:    '正常三步驟流程，不預填數量',
+    assist: '三步驟流程，第三步自動預填預設數量',
+    direct: '選完學生直接出現確認按鈕，跳過第三步'
+  }[simpleModeType] || '';
 }
 
 async function renderSimpleDefaultsList() {
@@ -1181,10 +1181,8 @@ function saveSimpleDefaults() {
 }
 
 function renderSimpleSettingsIfNeeded() {
-  const toggle = document.getElementById('simpleModeToggle');
-  if (toggle) toggle.checked = simpleModeEnabled;
   updateSimpleModeUI();
-  if (simpleModeEnabled) renderSimpleDefaultsList();
+  if (simpleModeType !== 'off') renderSimpleDefaultsList();
 }
 
 // === 下課倒數計時 ===
@@ -1392,8 +1390,8 @@ async function selectStudent(seat, name, btnEl) {
   const oldEp = document.getElementById('eqPanel');
   if (oldEp) oldEp.remove();
 
-  if (simpleModeEnabled) {
-    // 簡化模式：學生面板顯示載入中確認按鈕，背景載入庫存
+  if (simpleModeType === 'direct') {
+    // 直接簡化：學生面板顯示確認按鈕，跳過第三步
     const sp = document.getElementById('studentPanel');
     sp.innerHTML = `
       <div class="panel-header">
@@ -1406,9 +1404,7 @@ async function selectStudent(seat, name, btnEl) {
       </div>
     `;
 
-    // 背景載入庫存
     const res = await api({ action: 'getEquipment' });
-    // 若選學生後又重選了，studentPanel 會重建，確認 area 還在
     const confirmArea = document.getElementById('simpleConfirmArea');
     if (!confirmArea || !selectedStudent || selectedStudent.seat !== seat) return;
 
@@ -1420,7 +1416,6 @@ async function selectStudent(seat, name, btnEl) {
     equipmentData = res.data;
     borrowQty = {};
 
-    // 套用預設值（不超過庫存上限）
     res.data.forEach(eq => {
       const def = getSimpleDefault(eq.name);
       const cap = eq.returnEnabled ? eq.available : eq.maxPerBorrow;
@@ -1435,7 +1430,6 @@ async function selectStudent(seat, name, btnEl) {
     renderDashboard(res.data);
 
     if (!summary) {
-      // 預設值無法匹配庫存（名稱不符或庫存為0），退化成手動選數量
       confirmArea.innerHTML = `
         <div style="font-size:13px;color:var(--gray-500);margin-bottom:10px">⚡ 請手動選擇數量</div>
         <div id="eqList"></div>
@@ -1453,7 +1447,7 @@ async function selectStudent(seat, name, btnEl) {
     `;
 
   } else {
-    // 一般模式：學生面板收合，顯示第三步驟
+    // 關閉 或 輔助填入：學生面板收合，顯示第三步驟
     const sp = document.getElementById('studentPanel');
     sp.innerHTML = `
       <div class="panel-header">
@@ -1480,7 +1474,17 @@ async function selectStudent(seat, name, btnEl) {
     cacheSet('equipment', res.data);
     equipmentData = res.data;
     borrowQty = {};
-    res.data.forEach(eq => borrowQty[eq.name] = 0);
+
+    if (simpleModeType === 'assist') {
+      // 輔助填入：預填預設數量
+      res.data.forEach(eq => {
+        const def = getSimpleDefault(eq.name);
+        const cap = eq.returnEnabled ? eq.available : eq.maxPerBorrow;
+        borrowQty[eq.name] = Math.min(def, cap);
+      });
+    } else {
+      res.data.forEach(eq => borrowQty[eq.name] = 0);
+    }
 
     renderEquipment();
     renderDashboard(res.data);
