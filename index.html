@@ -1101,7 +1101,7 @@ function getSimpleDefault(eqName) {
 
 function loadSimpleSettings() {
   const storedMode = localStorage.getItem('simpleMode');
-  simpleModeEnabled = storedMode === null ? true : storedMode === 'true';
+  simpleModeEnabled = storedMode === null ? false : storedMode === 'true';
   try {
     const stored = localStorage.getItem('simpleDefaults');
     const parsed = stored ? JSON.parse(stored) : null;
