@@ -333,6 +333,7 @@ function doUpdateEquipment(name, total, max) {
   if (rowIdx === -1) return { ok: false, error: '找不到此器材' };
   if (total !== undefined) sheet.getRange(rowIdx + 1, 3).setValue(parseInt(total));
   if (max !== undefined) sheet.getRange(rowIdx + 1, 5).setValue(parseInt(max));
+  SpreadsheetApp.flush();
   return { ok: true, message: '器材更新成功' };
 }
 
