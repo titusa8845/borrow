@@ -99,6 +99,9 @@
   }
   .countdown-chip-time { font-size: 28px; font-weight: 800; line-height: 1.1; letter-spacing: 1px; }
   .countdown-chip-label { font-size: 13px; opacity: 0.85; }
+  .countdown-chip.cleaning { background: #fff3cd; color: #856404; }
+  .countdown-chip.cleaning .countdown-chip-time { font-size: 22px; }
+  .countdown-chip.cleaning .countdown-chip-label { font-size: 13px; font-weight: 700; opacity: 1; }
 
   .header h1 {
     font-size: 24px;
@@ -1099,6 +1102,7 @@ const BREAK_TIMES = [
   { start: '14:00', end: '14:10' },
   { start: '14:50', end: '15:10' },
 ];
+const CLEAN_TIME = { start: '10:10', end: '10:30' };
 
 function timeToMinutes(str) {
   const [h, m] = str.split(':').map(Number);
@@ -1108,11 +1112,25 @@ function timeToMinutes(str) {
 function updateCountdown() {
   const chip = document.getElementById('countdownChip');
   const timeEl = document.getElementById('countdownTime');
+  const labelEl = chip ? chip.querySelector('.countdown-chip-label') : null;
   if (!chip || !timeEl) return;
 
   const now = new Date();
   const currentMin = now.getHours() * 60 + now.getMinutes();
   const currentSec = now.getSeconds();
+
+  // 打掃時間優先判斷
+  const cs = timeToMinutes(CLEAN_TIME.start);
+  const ce = timeToMinutes(CLEAN_TIME.end);
+  if (currentMin >= cs && currentMin < ce) {
+    chip.style.display = 'flex';
+    chip.classList.remove('urgent');
+    chip.classList.add('cleaning');
+    timeEl.textContent = '🧹';
+    if (labelEl) labelEl.textContent = '打掃時間 禁止借用';
+    return;
+  }
+  chip.classList.remove('cleaning');
 
   let activeBreak = null;
   for (const b of BREAK_TIMES) {
@@ -1123,6 +1141,7 @@ function updateCountdown() {
 
   if (!activeBreak) {
     chip.style.display = 'none';
+    if (labelEl) labelEl.textContent = '距上課';
     return;
   }
 
@@ -1134,6 +1153,7 @@ function updateCountdown() {
 
   chip.style.display = 'flex';
   timeEl.textContent = `${mm}:${ss}`;
+  if (labelEl) labelEl.textContent = '距上課';
 
   if (totalSecsLeft <= 180) {
     chip.classList.add('urgent');
