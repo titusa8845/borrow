@@ -103,6 +103,14 @@
   .countdown-chip.cleaning .countdown-chip-time { font-size: 22px; }
   .countdown-chip.cleaning .countdown-chip-label { font-size: 13px; font-weight: 700; opacity: 1; }
 
+  .app.urgent-bg {
+    animation: urgentBg 1.5s ease-in-out infinite;
+  }
+  @keyframes urgentBg {
+    0%, 100% { background: var(--gray-50); }
+    50%       { background: #ffd6d6; }
+  }
+
   .header h1 {
     font-size: 24px;
     font-weight: 700;
@@ -1142,6 +1150,7 @@ function updateCountdown() {
   if (!activeBreak) {
     chip.style.display = 'none';
     if (labelEl) labelEl.textContent = '距上課';
+    document.querySelector('.app').classList.remove('urgent-bg');
     return;
   }
 
@@ -1157,8 +1166,10 @@ function updateCountdown() {
 
   if (totalSecsLeft <= 180) {
     chip.classList.add('urgent');
+    document.querySelector('.app').classList.add('urgent-bg');
   } else {
     chip.classList.remove('urgent');
+    document.querySelector('.app').classList.remove('urgent-bg');
   }
 }
 
