@@ -1286,7 +1286,7 @@ async function selectStudent(seat, name, btnEl) {
         <button class="change-btn" onclick="reselectStudent()">🔄 重選</button>
       </div>
       <div class="selected-info">${String(seat).padStart(2, '0')} ${name}</div>
-      <div id="simpleConfirmArea" style="margin-top:16px">
+      <div id="simpleConfirmArea" style="margin-top:16px;text-align:center">
         <div style="font-size:14px;color:var(--gray-500);margin-bottom:10px"><div class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:6px"></div>確認庫存中...</div>
       </div>
     `;
@@ -1333,7 +1333,7 @@ async function selectStudent(seat, name, btnEl) {
     }
 
     confirmArea.innerHTML = `
-      <div style="font-size:14px;color:var(--gray-500);margin-bottom:12px">⚡ ${summary}</div>
+      <div style="font-size:28px;font-weight:700;color:var(--gray-600);margin-bottom:12px">⚡ ${summary}</div>
       <button class="submit-btn" id="submitBtn" onclick="submitBorrow()">✅ 確認借用</button>
     `;
 
