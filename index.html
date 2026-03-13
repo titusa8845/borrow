@@ -1176,69 +1176,96 @@ function reselectStudent() {
 async function selectStudent(seat, name, btnEl) {
   selectedStudent = { seat, name };
 
-  // 學生面板變成已選狀態
-  const sp = document.getElementById('studentPanel');
-  sp.innerHTML = `
-    <div class="panel-header">
-      <div class="panel-label">🙋 ② 學生</div>
-      <button class="change-btn" onclick="reselectStudent()">🔄 重選</button>
-    </div>
-    <div class="selected-info">${String(seat).padStart(2, '0')} ${name}</div>
-  `;
-
   // 移除舊的數量面板
   const oldEp = document.getElementById('eqPanel');
   if (oldEp) oldEp.remove();
 
-  // 新增數量面板
-  const panel = document.createElement('div');
-  panel.className = 'panel';
-  panel.id = 'eqPanel';
-  const stepLabel = simpleModeEnabled
-    ? `<div class="panel-label">🏸 ③ 借用項目<span id="simplePreviewTag" style="font-size:12px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:20px;margin-left:8px">⚡ 簡化模式</span></div>`
-    : `<div class="panel-label">🏸 ③ 選擇數量</div>`;
-  panel.innerHTML = `
-    ${stepLabel}
-    <div id="simpleDefaultHint" style="display:none;font-size:14px;color:var(--gray-500);margin-bottom:10px"></div>
-    <div id="eqList"><div class="loading"><div class="spinner"></div><br>載入庫存中...</div></div>
-    <div style="margin-top:16px">
-      <button class="submit-btn" id="submitBtn" onclick="submitBorrow()" disabled>✅ 確認借用</button>
-    </div>
-  `;
-  document.getElementById('mainContent').appendChild(panel);
+  if (simpleModeEnabled) {
+    // 簡化模式：學生面板顯示載入中確認按鈕，背景載入庫存
+    const sp = document.getElementById('studentPanel');
+    sp.innerHTML = `
+      <div class="panel-header">
+        <div class="panel-label">🙋 ② 學生</div>
+        <button class="change-btn" onclick="reselectStudent()">🔄 重選</button>
+      </div>
+      <div class="selected-info">${String(seat).padStart(2, '0')} ${name}</div>
+      <div id="simpleConfirmArea" style="margin-top:16px">
+        <div style="font-size:14px;color:var(--gray-500);margin-bottom:10px"><div class="spinner" style="display:inline-block;width:16px;height:16px;margin-right:6px"></div>確認庫存中...</div>
+      </div>
+    `;
 
-  // 每次選學生都重新載入最新庫存，確保數字正確
-  const res = await api({ action: 'getEquipment' });
-  if (!res.ok) { document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗，請重試</div>'; return; }
-  cacheSet('equipment', res.data);
-  equipmentData = res.data;
-  borrowQty = {};
+    // 背景載入庫存
+    const res = await api({ action: 'getEquipment' });
+    // 若選學生後又重選了，studentPanel 會重建，確認 area 還在
+    const confirmArea = document.getElementById('simpleConfirmArea');
+    if (!confirmArea || !selectedStudent || selectedStudent.seat !== seat) return;
 
-  if (simpleModeEnabled && Object.keys(simpleDefaults).length > 0) {
-    // 簡化模式：套用預設值（不超過庫存上限）
+    if (!res.ok) {
+      confirmArea.innerHTML = `<div style="color:var(--danger);font-size:14px">庫存載入失敗，請重選學生</div>`;
+      return;
+    }
+    cacheSet('equipment', res.data);
+    equipmentData = res.data;
+    borrowQty = {};
+
+    // 套用預設值（不超過庫存上限）
     res.data.forEach(eq => {
       const def = simpleDefaults[eq.name] || 0;
       const cap = eq.returnEnabled ? eq.available : eq.maxPerBorrow;
       borrowQty[eq.name] = Math.min(def, cap);
     });
-    // 顯示預設摘要提示
-    const hint = document.getElementById('simpleDefaultHint');
+
     const summary = res.data
       .filter(eq => borrowQty[eq.name] > 0)
       .map(eq => `${eq.name} × ${borrowQty[eq.name]}`)
       .join('、');
-    if (hint && summary) {
-      hint.textContent = `⚡ 已套用預設：${summary}`;
-      hint.style.display = 'block';
+
+    if (!summary) {
+      confirmArea.innerHTML = `<div style="color:var(--danger);font-size:14px">庫存不足，無法借用</div>`;
+      return;
     }
+
+    confirmArea.innerHTML = `
+      <div style="font-size:14px;color:var(--gray-500);margin-bottom:12px">⚡ ${summary}</div>
+      <button class="submit-btn" id="submitBtn" onclick="submitBorrow()">✅ 確認借用</button>
+    `;
+
+    renderDashboard(res.data);
+
   } else {
+    // 一般模式：學生面板收合，顯示第三步驟
+    const sp = document.getElementById('studentPanel');
+    sp.innerHTML = `
+      <div class="panel-header">
+        <div class="panel-label">🙋 ② 學生</div>
+        <button class="change-btn" onclick="reselectStudent()">🔄 重選</button>
+      </div>
+      <div class="selected-info">${String(seat).padStart(2, '0')} ${name}</div>
+    `;
+
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.id = 'eqPanel';
+    panel.innerHTML = `
+      <div class="panel-label">🏸 ③ 選擇數量</div>
+      <div id="eqList"><div class="loading"><div class="spinner"></div><br>載入庫存中...</div></div>
+      <div style="margin-top:16px">
+        <button class="submit-btn" id="submitBtn" onclick="submitBorrow()" disabled>✅ 確認借用</button>
+      </div>
+    `;
+    document.getElementById('mainContent').appendChild(panel);
+
+    const res = await api({ action: 'getEquipment' });
+    if (!res.ok) { document.getElementById('eqList').innerHTML = '<div class="loading">載入失敗，請重試</div>'; return; }
+    cacheSet('equipment', res.data);
+    equipmentData = res.data;
+    borrowQty = {};
     res.data.forEach(eq => borrowQty[eq.name] = 0);
+
+    renderEquipment();
+    renderDashboard(res.data);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-
-  renderEquipment();
-  renderDashboard(res.data);
-
-  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderDashboard(data) {
@@ -1333,8 +1360,8 @@ async function submitBorrow() {
     if (eqRes.ok) { cacheSet('equipment', eqRes.data); equipmentData = eqRes.data; renderDashboard(eqRes.data); }
   } else {
     showToast(res.error || '借用失敗', 'error');
-    document.getElementById('submitBtn').disabled = false;
-    document.getElementById('submitBtn').innerHTML = '&#10003; 確認借用';
+    const btn = document.getElementById('submitBtn');
+    if (btn) { btn.disabled = false; btn.innerHTML = '✅ 確認借用'; }
   }
 }
 
