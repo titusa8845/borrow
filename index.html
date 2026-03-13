@@ -965,7 +965,8 @@ function loadSimpleSettings() {
   simpleModeEnabled = storedMode === null ? true : storedMode === 'true';
   try {
     const stored = localStorage.getItem('simpleDefaults');
-    simpleDefaults = stored ? JSON.parse(stored) : { '羽毛球': 1, '球拍': 1 };
+    const parsed = stored ? JSON.parse(stored) : null;
+    simpleDefaults = (parsed && Object.keys(parsed).length > 0) ? parsed : { '羽毛球': 1, '球拍': 1 };
   } catch(e) { simpleDefaults = { '羽毛球': 1, '球拍': 1 }; }
 }
 
