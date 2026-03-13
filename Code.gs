@@ -336,6 +336,19 @@ function doUpdateEquipment(name, total, max) {
   return { ok: true, message: '器材更新成功' };
 }
 
+// 一次性修復：補齊器材 F 欄狀態空白，在 Apps Script 編輯器手動執行一次即可
+function fixEquipmentStatus() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('器材');
+  const data = sheet.getDataRange().getValues();
+  data.forEach((row, i) => {
+    if (i === 0) return; // 跳過標題列
+    if (row[0] && !row[5]) {
+      sheet.getRange(i + 1, 6).setValue('啟用');
+    }
+  });
+  Logger.log('器材狀態修復完成');
+}
+
 function doAddEquipment(name, unit, total, max) {
   if (!name || !unit) return { ok: false, error: '請填寫完整資料' };
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('器材');
