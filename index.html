@@ -1220,8 +1220,18 @@ async function selectStudent(seat, name, btnEl) {
       .map(eq => `${eq.name} × ${borrowQty[eq.name]}`)
       .join('、');
 
+    renderDashboard(res.data);
+
     if (!summary) {
-      confirmArea.innerHTML = `<div style="color:var(--danger);font-size:14px">庫存不足，無法借用</div>`;
+      // 預設值無法匹配庫存（名稱不符或庫存為0），退化成手動選數量
+      confirmArea.innerHTML = `
+        <div style="font-size:13px;color:var(--gray-500);margin-bottom:10px">⚡ 請手動選擇數量</div>
+        <div id="eqList"></div>
+        <div style="margin-top:16px">
+          <button class="submit-btn" id="submitBtn" onclick="submitBorrow()" disabled>✅ 確認借用</button>
+        </div>
+      `;
+      renderEquipment();
       return;
     }
 
@@ -1229,8 +1239,6 @@ async function selectStudent(seat, name, btnEl) {
       <div style="font-size:14px;color:var(--gray-500);margin-bottom:12px">⚡ ${summary}</div>
       <button class="submit-btn" id="submitBtn" onclick="submitBorrow()">✅ 確認借用</button>
     `;
-
-    renderDashboard(res.data);
 
   } else {
     // 一般模式：學生面板收合，顯示第三步驟
