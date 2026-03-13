@@ -960,6 +960,23 @@ let returnEnabled = true;
 let simpleModeEnabled = false;
 let simpleDefaults = {}; // { 器材名: 預設數量 }
 
+// 移除 emoji 和前後空白，用於名稱比對
+function stripEmoji(str) {
+  return str.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+}
+
+// 取得某器材的預設數量（支援 emoji 前綴的名稱）
+function getSimpleDefault(eqName) {
+  if (simpleDefaults[eqName] !== undefined) return simpleDefaults[eqName];
+  const clean = stripEmoji(eqName);
+  if (simpleDefaults[clean] !== undefined) return simpleDefaults[clean];
+  // 反向：simpleDefaults 的 key 也可能有 emoji，用清理後比對
+  for (const [key, val] of Object.entries(simpleDefaults)) {
+    if (stripEmoji(key) === clean) return val;
+  }
+  return 0;
+}
+
 function loadSimpleSettings() {
   const storedMode = localStorage.getItem('simpleMode');
   simpleModeEnabled = storedMode === null ? true : storedMode === 'true';
@@ -1006,7 +1023,7 @@ async function renderSimpleDefaultsList() {
   const active = eqData.filter(eq => eq.status !== '停用');
   if (active.length === 0) { container.innerHTML = '<div style="color:var(--gray-500);font-size:14px">尚無啟用的器材</div>'; return; }
   container.innerHTML = active.map(eq => {
-    const defaultQty = simpleDefaults[eq.name] || 0;
+    const defaultQty = getSimpleDefault(eq.name);
     const checked = defaultQty > 0 ? 'checked' : '';
     const safeName = eq.name.replace(/'/g, "\\'");
     return `
@@ -1210,7 +1227,7 @@ async function selectStudent(seat, name, btnEl) {
 
     // 套用預設值（不超過庫存上限）
     res.data.forEach(eq => {
-      const def = simpleDefaults[eq.name] || 0;
+      const def = getSimpleDefault(eq.name);
       const cap = eq.returnEnabled ? eq.available : eq.maxPerBorrow;
       borrowQty[eq.name] = Math.min(def, cap);
     });
