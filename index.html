@@ -1658,11 +1658,12 @@ async function loadRecords(filter) {
   const res = await api({ action: 'getRecords', pw: adminPw, filter });
   if (!res.ok) { container.innerHTML = '<div class="loading">載入失敗</div>'; return; }
   if (res.data.length === 0) { container.innerHTML = '<div class="loading">沒有紀錄</div>'; return; }
-  let html = '<table class="admin-table"><thead><tr><th>時間</th><th>班級/姓名</th><th>器材</th><th>狀態</th></tr></thead><tbody>';
+  let html = '<table class="admin-table"><thead><tr><th>時間</th><th>班級/姓名</th><th>器材</th><th>狀態</th><th></th></tr></thead><tbody>';
   res.data.forEach(r => {
     const cls = (r.status === '借出中' || r.status === '已借出') ? 'active' : 'returned';
-    const btn = (r.status === '借出中' && returnEnabled) ? `<button class="return-btn" onclick="returnItem(${r.row})">↩️ 歸還</button>` : '';
-    html += `<tr><td style="font-size:13px">${r.time}</td><td>${r.className}<br><b>${r.name}</b></td><td>${r.equipment} x${r.qty}</td><td><span class="status-badge ${cls}">${r.status}</span><br>${btn}</td></tr>`;
+    const returnBtn = (r.status === '借出中' && returnEnabled) ? `<button class="return-btn" onclick="returnItem(${r.row})">↩️ 歸還</button>` : '';
+    const delBtn = `<button onclick="deleteRecord(${r.row}, '${r.name} ${r.equipment}')" style="border:none;background:none;font-size:18px;cursor:pointer;padding:4px;opacity:0.5;line-height:1" title="刪除此紀錄">🗑️</button>`;
+    html += `<tr><td style="font-size:13px">${r.time}</td><td>${r.className}<br><b>${r.name}</b></td><td>${r.equipment} x${r.qty}</td><td><span class="status-badge ${cls}">${r.status}</span><br>${returnBtn}</td><td style="text-align:center">${delBtn}</td></tr>`;
   });
   container.innerHTML = html + '</tbody></table>';
 }
@@ -1696,6 +1697,13 @@ async function returnItem(row) {
   const res = await api({ action: 'returnItem', pw: adminPw, row });
   if (res.ok) { showToast('✅ 歸還成功', 'success'); loadRecords('all'); }
   else showToast(res.error || '歸還失敗', 'error');
+}
+
+async function deleteRecord(row, label) {
+  if (!confirm(`確認刪除此紀錄？\n${label}\n\n刪除後無法復原。`)) return;
+  const res = await api({ action: 'deleteRecord', pw: adminPw, row });
+  if (res.ok) { showToast('🗑️ 紀錄已刪除', 'success'); loadRecords('all'); }
+  else showToast(res.error || '刪除失敗', 'error');
 }
 
 // 班級管理

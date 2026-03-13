@@ -53,6 +53,7 @@ function dispatch(p) {
     case 'getSettings':    return auth(p, () => ({ ok: true, data: getSettings() }));
     case 'setSetting':     return auth(p, () => doSetSetting(p.key, p.value));
     case 'resetInventory': return auth(p, () => doResetInventory());
+    case 'deleteRecord':   return auth(p, () => doDeleteRecord(p.row));
     case 'setAutoReturn':  return auth(p, () => doSetAutoReturn(p.minutes));
     case 'getAutoReturnStatus': return auth(p, () => doGetAutoReturnStatus());
 
@@ -220,6 +221,16 @@ function doBorrow(p) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ========== 刪除紀錄 ==========
+function doDeleteRecord(rowNum) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('借用紀錄');
+  const row = parseInt(rowNum);
+  if (isNaN(row) || row < 2) return { ok: false, error: '無效的紀錄' };
+  sheet.deleteRow(row);
+  SpreadsheetApp.flush();
+  return { ok: true, message: '紀錄已刪除' };
 }
 
 // ========== 歸還 ==========
